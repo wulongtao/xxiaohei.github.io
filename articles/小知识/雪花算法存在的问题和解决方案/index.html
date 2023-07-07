@@ -13,20 +13,20 @@
   
   <title>归档 | 小小黑的技术屋</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="本文介绍如何利用Github Action把Hexo项目部署到Github上，并且实现提交本地代码后，自动部署并发布到Github Pages上，而不需要使用hexo d命令发布那么繁琐。">
+  <meta name="description" content="雪花算法原理snowflake（雪花算法）：Twitter 开源的分布式 id 生成算法，64 位的 long 型的 id，分为 4 部分：   1 bit：不用，统一为 0 41 bits：毫秒时间戳，可以表示 69 年的时间。 10 bits：5 bits 代表机房 id，5 个 bits 代表机器 id。最多代表 32 个机房，每个机房最多代表 32 台机器。 12 bits：同一毫秒内的">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hexo搭建个人网站（二）">
-<meta property="og:url" content="https://wulongtao.github.io/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/index.html">
+<meta property="og:title" content="雪花算法存在的问题和解决方案">
+<meta property="og:url" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/index.html">
 <meta property="og:site_name" content="小小黑的技术屋">
-<meta property="og:description" content="本文介绍如何利用Github Action把Hexo项目部署到Github上，并且实现提交本地代码后，自动部署并发布到Github Pages上，而不需要使用hexo d命令发布那么繁琐。">
+<meta property="og:description" content="雪花算法原理snowflake（雪花算法）：Twitter 开源的分布式 id 生成算法，64 位的 long 型的 id，分为 4 部分：   1 bit：不用，统一为 0 41 bits：毫秒时间戳，可以表示 69 年的时间。 10 bits：5 bits 代表机房 id，5 个 bits 代表机器 id。最多代表 32 个机房，每个机房最多代表 32 台机器。 12 bits：同一毫秒内的">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://wulongtao.github.io/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/cover.jpg">
-<meta property="article:published_time" content="2023-07-05T21:23:05.000Z">
-<meta property="article:modified_time" content="2023-07-05T21:23:05.000Z">
+<meta property="og:image" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/cover.png">
+<meta property="article:published_time" content="2023-07-07T21:29:20.000Z">
+<meta property="article:modified_time" content="2023-07-07T21:29:20.000Z">
 <meta property="article:author" content="xxiaohei">
-<meta property="article:tag" content="Hexo">
+<meta property="article:tag" content="雪花算法">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://wulongtao.github.io/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/cover.jpg">
+<meta name="twitter:image" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/cover.png">
   
     <link rel="alternate" href="/atom.xml" title="小小黑的技术屋" type="application/atom+xml">
   
@@ -339,14 +339,14 @@
     <div id="content-body">
        
 
-<article id="post-Hexo搭建个人网站（二）" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+<article id="post-雪花算法存在的问题和解决方案" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   
     
 <div class="article-gallery">
   <div class="article-gallery-photos">
     
-      <a class="article-gallery-img" rel="gallery_cljsn2ps80003fhnc82a51u65">
-        <img src="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/cover.jpg" itemprop="image">
+      <a class="article-gallery-img" rel="gallery_cljsn2pse0007fhnc8136hywa">
+        <img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/cover.png" itemprop="image">
       </a>
     
   </div>
@@ -362,7 +362,7 @@
   
     
       <h1 class="p-name article-title" itemprop="headline name">
-        Hexo搭建个人网站（二）
+        雪花算法存在的问题和解决方案
       </h1>
     
   
@@ -370,101 +370,89 @@
 
         <div class='meta-info-bar'>
           <div class="meta-info">
-  <time class="dt-published" datetime="2023-07-05T21:23:05.000Z" itemprop="datePublished">2023-07-05</time>
+  <time class="dt-published" datetime="2023-07-07T21:29:20.000Z" itemprop="datePublished">2023-07-07</time>
 </div>
           <div class="need-seperator meta-info">
             <div class="meta-cate-flex">
   
-  <a class="meta-cate-link" href="/categories/Hexo/">Hexo</a>
+  <a class="meta-cate-link" href="/categories/%E5%B0%8F%E7%9F%A5%E8%AF%86/">小知识</a>
    
 </div>
   
           </div>
           <div class="wordcount need-seperator meta-info">
-            521 词 
+            1.4k 词 
           </div>
         </div>
         
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
 
       </header>
       <div class="e-content article-entry" itemprop="articleBody">
         
-          <p>本文介绍如何利用Github Action把Hexo项目部署到Github上，并且实现提交本地代码后，自动部署并发布到Github Pages上，而不需要使用hexo d命令发布那么繁琐。</p>
-<span id="more"></span>
+          <h3 id="雪花算法原理"><a href="#雪花算法原理" class="headerlink" title="雪花算法原理"></a>雪花算法原理</h3><p><code>snowflake</code>（雪花算法）：Twitter 开源的分布式 id 生成算法，64 位的 long 型的 id，分为 4 部分：</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/image1.png" alt="image1.png"></p>
+<ul>
+<li>1 bit：不用，统一为 0</li>
+<li>41 bits：<code>毫秒时间戳</code>，可以表示 69 年的时间。</li>
+<li>10 bits：5 bits 代表机房 id，5 个 bits 代表机器 id。最多代表 32 个机房，每个机房最多代表 32 台机器。</li>
+<li>12 bits：同一毫秒内的 id，最多 4096 个不同 id，自增模式</li>
+</ul>
+<p>优点：</p>
+<ul>
+<li>毫秒数在高位，自增序列在低位，整个 ID 都是趋势递增的。</li>
+<li>不依赖数据库等第三方系统，以服务的方式部署，稳定性更高，生成 ID 的性能也是非常高的。</li>
+<li>可以根据自身业务特性分配 bit 位，非常灵活。</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li><p>强依赖机器时钟，如果机器上时钟回拨（可以搜索 <strong>2017 年闰秒 7:59:60</strong>），会导致发号重复或者服务会处于不可用状态。</p>
+</li>
+<li><p>雪花算法和时间是强关联的，其中有 41 位是当前时间的时间戳，</p>
+</li>
+</ul>
+<h3 id="雪花算法的问题"><a href="#雪花算法的问题" class="headerlink" title="雪花算法的问题"></a>雪花算法的问题</h3><p>既然是雪花算法的问题，那我们就来看下雪花算法出了什么问题：</p>
+<p>（1）What：雪花算法生成了重复的 ID，这些 ID 是什么样的？</p>
+<p>（2）Why：雪花算法为什么生成了重复的 key</p>
+<p>第一个问题，我们可以通过报错信息发现，这个重复的 ID 是 <code>-1</code>，这个就很奇怪了。一般雪花算法生成的唯一 ID 如下所示，我分别用二进制和十进制来表示：</p>
+<pre class="line-numbers language-none"><code class="language-none">十进制表示：2097167233578045440
 
-<h3 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h3><p>首先创建两个项目：</p>
-<ol>
-<li>Hexo博客仓库：我们真正写文章的Hexo项目</li>
-<li>Hexo部署仓库：用于部署生成一个可访问的前端网址的项目</li>
-</ol>
-<h3 id="配置SSH"><a href="#配置SSH" class="headerlink" title="配置SSH"></a>配置SSH</h3><p>在本地生成一对 SSH 密钥，注意更改文件名避免将正在使用的密钥覆盖。</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">ssh-keygen <span class="token parameter variable">-t</span> ed25519 <span class="token parameter variable">-C</span> <span class="token string">"your_email@example.com"</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-<p>在博客仓库的 Settings -&gt; Secrets -&gt; Actions 中添加 SSH 私钥，命名为 SSH_DEPLOY_KEY</p>
-<p><img src="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/image1.png" alt="image1.png"></p>
-<p>在部署仓库的 Settings -&gt; Deploy keys 中添加 SSH 公钥，注意勾选 Allow write access。</p>
-<p><img src="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/image2.png" alt="image2.png"></p>
-<h3 id="配置-hexo-deployer-git"><a href="#配置-hexo-deployer-git" class="headerlink" title="配置 hexo-deployer-git"></a>配置 hexo-deployer-git</h3><p>安装 hexo-deployer-git。</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">npm</span> <span class="token function">install</span> hexo-deployer-git<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+二进制表示：0001 1101 0001 1010 1010 0010 0111 1100 1101 1000 0000 0010 0001 0000 0000 0000<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
 
-<p>然后在 _config.yml 中添加以下内容这里配置的仓库是部署仓库的地址</p>
-<pre class="line-numbers language-yaml" data-language="yaml"><code class="language-yaml"><span class="token key atrule">deploy</span><span class="token punctuation">:</span>
-  <span class="token key atrule">type</span><span class="token punctuation">:</span> git
-  <span class="token key atrule">repo</span><span class="token punctuation">:</span> git@github.com<span class="token punctuation">:</span>wulongtao/wulongtao.github.io.git
-  <span class="token key atrule">branch</span><span class="token punctuation">:</span> main
-  <span class="token key atrule">token</span><span class="token punctuation">:</span> <span class="token comment"># 这里可以不用token</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>找到项目中使用雪花算法的工具类，生成 ID 的时候有个判断逻辑：</p>
+<blockquote>
+<p>当<code>当前时间</code>小于<code>上次的生成时间</code>就会返回 <code>-1</code>，所以问题就出在这个逻辑上面。(有的雪花算法是直接抛异常)</p>
+</blockquote>
+<pre class="line-numbers language-none"><code class="language-none">if (timestamp &lt; this.lastTimestamp) &#123;
+   return -1;
+&#125;<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
 
-<h3 id="博客仓库——编写Workflow"><a href="#博客仓库——编写Workflow" class="headerlink" title="博客仓库——编写Workflow"></a>博客仓库——编写Workflow</h3><p>创建 .github&#x2F;workflows&#x2F;deployment.yml，写入以下内容，注意修改仓库地址和 Git 配置。此时当 push 到博客仓库时，GitHub Actions 将会自动部署。配置也不多做解释，看内容应该大致知道怎么配了。</p>
-<p><img src="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/image3.png" alt="image3.png"></p>
-<pre class="line-numbers language-yaml" data-language="yaml"><code class="language-yaml"><span class="token key atrule">name</span><span class="token punctuation">:</span> Deployment
-<span class="token key atrule">on</span><span class="token punctuation">:</span> push
+<p>由于每次 <code>timestamp</code> 都是小于 <code>lastTimeStamp</code>，所以<strong>每次都返回了 -1</strong>，这也解释了为什么生成了重复的 key。</p>
+<h3 id="时钟回拨或跳跃"><a href="#时钟回拨或跳跃" class="headerlink" title="时钟回拨或跳跃"></a>时钟回拨或跳跃</h3><p>首先假定当前的北京时间是 9:00:00。另外上次生成 ID 的时候，服务器获取的时间 lastTimestamp&#x3D;10:00:00，而现在服务器获取的当前时间 timestamp&#x3D;09:00:00，这就相当于服务器之前是获取了一个未来时间，现在突然<code>跳跃</code>到当前时间。</p>
+<p>而这种场景我们称之为<code>时钟回拨</code>或<code>时钟跳跃</code>。</p>
+<p><strong>时钟回拨</strong>：服务器时钟可能会因为各种原因发生不准，而网络中会提供 NTP 服务来做时间校准，因此在做校准的时候，服务器时钟就会发生时钟的跳跃或者回拨问题。</p>
+<h3 id="时钟同步"><a href="#时钟同步" class="headerlink" title="时钟同步"></a>时钟同步</h3><p>那么服务器为什么会发生时钟回拨或跳跃呢？</p>
+<blockquote>
+<p>我们猜测是不是服务器上的时钟不同步后，又自动进行同步了，前后时间不一致。</p>
+</blockquote>
+<p>首先我们的每台服务器上都安装了 <code>ntpdate</code> 软件，作为 NTP 客户端，会每隔 <code>10 分钟</code>向 <code>NTP 时间服务器</code>同步一次时间。</p>
+<p>服务器 1 和 服务器 2 部署了应用服务，每隔 10 分钟向<code>时间服务器</code>同步一次时间，来保证服务器 1 和服务器 2 的时间和<code>时间服务器</code>的时间一致。</p>
+<p>每隔 10 分钟同步的设置：</p>
+<pre class="line-numbers language-none"><code class="language-none">*&#x2F;10 * * * * &#x2F;usr&#x2F;sbin&#x2F;ntpdate &lt;ip&gt;<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
-<span class="token key atrule">jobs</span><span class="token punctuation">:</span>
-  <span class="token key atrule">deployment</span><span class="token punctuation">:</span>
-    <span class="token key atrule">runs-on</span><span class="token punctuation">:</span> ubuntu<span class="token punctuation">-</span>latest
-    <span class="token key atrule">name</span><span class="token punctuation">:</span> Deployment
+<p>另外时间服务器会向 <code>NTP Pool</code>同步时间，NTP Pool 正在为世界各地成百上千万的系统提供服务。 它是绝大多数主流 Linux 发行版和许多网络设备的默认 “时间服务器”。（参考 ntppool.org）</p>
+<p>这个 NTP 时钟回拨的偶发现象并不常见，但时钟回拨确实会带了很多问题，比如<code>润秒</code> 问题也会带来 1s 时间的回拨。</p>
+<p><strong>闰秒</strong>就是通过给 “世界标准时间” 加（或减）1 秒，让它更接近“太阳时”。例如，两者相差超过 0.9 秒时，就在 23 点 59 分 59 秒与 00 点 00 分 00 秒之间，插入一个原本不存在的“23 点 59 分 60 秒”，来将时间调慢一秒钟。</p>
+<p>为了预防这种情况的发生，网上也有一些开源解决方案。</p>
+<h2 id="三、解决方案"><a href="#三、解决方案" class="headerlink" title="三、解决方案"></a>三、解决方案</h2><p>（1）方式一：使用美团 <code>Leaf</code>方案，基于雪花算法。</p>
+<p>（2）方式二：使用百度 UidGenerator，基于雪花算法</p>
+<p>（3）方式三：用 Redis 生成自增的分布式 ID。弊端是 ID 容易被猜到，有安全风险。</p>
+<h3 id="3-1-美团的-Leaf-方案"><a href="#3-1-美团的-Leaf-方案" class="headerlink" title="3.1 美团的 Leaf 方案"></a>3.1 美团的 Leaf 方案</h3><p>美团的开源项目 <code>Leaf</code> 的方案：采用依赖 <code>ZooKeeper</code> 的数据存储。如果时钟回拨的时间超过最大容忍的毫秒数阈值，则程序报错；如果在可容忍的范围内，Leaf 会<strong>等待时钟同步到最后一次主键生成的时间后再继续工作</strong>。</p>
+<h3 id="3-2-百度-UidGenerator-方案"><a href="#3-2-百度-UidGenerator-方案" class="headerlink" title="3.2 百度 UidGenerator 方案"></a>3.2 百度 UidGenerator 方案</h3><p>百度<code>UidGenerator</code>方案不在每次获取 ID 时都实时计算分布式 ID，而是利用 RingBuffer 数据结构，通过缓存的方式预生成一批唯一 ID 列表，然后通过 incrementAndGet() 方法获取下一次的时间，从而脱离了对服务器时间的依赖，也就不会有时钟回拨的问题。</p>
+<p><strong>重点就是预生成一批 ID！</strong></p>
+<p>Github 地址：</p>
+<pre class="line-numbers language-none"><code class="language-none">https:&#x2F;&#x2F;github.com&#x2F;baidu&#x2F;uid-generator<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
-    <span class="token key atrule">steps</span><span class="token punctuation">:</span>
-      <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> Check Out
-        <span class="token key atrule">uses</span><span class="token punctuation">:</span> actions/checkout@v3
-
-      <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> Clone Repo
-        <span class="token key atrule">uses</span><span class="token punctuation">:</span> actions/checkout@v3
-        <span class="token key atrule">with</span><span class="token punctuation">:</span>
-          <span class="token key atrule">repository</span><span class="token punctuation">:</span> wulongtao/wulongtao.github.io
-          <span class="token key atrule">path</span><span class="token punctuation">:</span> .deploy_git
-
-      <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> Setup Node
-        <span class="token key atrule">uses</span><span class="token punctuation">:</span> actions/setup<span class="token punctuation">-</span>node@v3
-        <span class="token key atrule">with</span><span class="token punctuation">:</span>
-          <span class="token key atrule">node-version</span><span class="token punctuation">:</span> <span class="token number">16</span>
-
-      <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> Setup Git
-        <span class="token key atrule">run</span><span class="token punctuation">:</span> <span class="token punctuation">|</span><span class="token scalar string">
-          git config --global user.name "wulongtao"
-          git config --global user.email "769418278@qq.com"</span>
-
-      <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> Setup SSH Key
-        <span class="token key atrule">run</span><span class="token punctuation">:</span> <span class="token punctuation">|</span><span class="token scalar string">
-          mkdir -p ~/.ssh
-          echo "$&#123;&#123; secrets.SSH_DEPLOY_KEY &#125;&#125;" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519</span>
-
-      <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> Deploy
-        <span class="token key atrule">run</span><span class="token punctuation">:</span> <span class="token punctuation">|</span><span class="token scalar string">
-          npm install --location=global hexo-cli
-          npm install
-          hexo d</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-
-
-
-<h3 id="部署仓库——在GitHub的Page页面配置WorkFlow就好"><a href="#部署仓库——在GitHub的Page页面配置WorkFlow就好" class="headerlink" title="部署仓库——在GitHub的Page页面配置WorkFlow就好"></a>部署仓库——在GitHub的Page页面配置WorkFlow就好</h3><p>在Settings –&gt; Pages页面中，配置Static Html<br><img src="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/image5.png" alt="image5.png"></p>
-<p>配置文件默认就好，但是如果用的分支不一样就换一下</p>
-<p><img src="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/image6.png" alt="image6.png"></p>
-<p>配置完成之后可以显示出主页访问地址</p>
-<p><img src="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/image4.png" alt="image4.png"></p>
-<h3 id="完成"><a href="#完成" class="headerlink" title="完成"></a>完成</h3><p>上面配置完成后就完成了，后面只要在博客仓库push代码，会自动触发CI&#x2F;CD。</p>
 
         
       </div>
@@ -477,27 +465,22 @@
   
     
 <nav id="article-nav">
-  <a class="article-nav-btn left "
-    
-      href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/"
-      title="雪花算法存在的问题和解决方案"
+  <a class="article-nav-btn left  disabled "
      >
     <i class="fa-solid fa-angle-left"></i>
     <p class="title-text">
-      
-        雪花算法存在的问题和解决方案
         
     </p>
   </a>
   <a class="article-nav-btn right "
     
-      href="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%B8%80%EF%BC%89/"
-      title="Hexo搭建个人网站（一）"
+      href="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/"
+      title="Hexo搭建个人网站（二）"
      >
 
     <p class="title-text">
       
-        Hexo搭建个人网站（一）
+        Hexo搭建个人网站（二）
         
     </p>
     <i class="fa-solid fa-angle-right"></i>
