@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+
+
+<html theme="dark" showBanner="true" hasBanner="desktop" > 
+<link href="/fontawesome/css/fontawesome.css" rel="stylesheet">
+<link href="/fontawesome/css/brands.css" rel="stylesheet">
+<link href="/fontawesome/css/solid.css" rel="stylesheet">
+<script src="/js/color.global.min.js" ></script>
+<script src="/js/load-settings.js" ></script>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>归档 | 小小黑的技术屋</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="Multipass是一个轻量级虚拟机，下面会介绍一些安装出现的问题和常用命令。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="轻量级虚拟机Multipass">
+<meta property="og:url" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/index.html">
+<meta property="og:site_name" content="小小黑的技术屋">
+<meta property="og:description" content="Multipass是一个轻量级虚拟机，下面会介绍一些安装出现的问题和常用命令。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/cover.jpg">
+<meta property="article:published_time" content="2023-07-08T08:42:23.000Z">
+<meta property="article:modified_time" content="2023-07-08T08:42:23.000Z">
+<meta property="article:author" content="xxiaohei">
+<meta property="article:tag" content="Linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/cover.jpg">
+  
+    <link rel="alternate" href="/atom.xml" title="小小黑的技术屋" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/assets/favicon.ico">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  <!--自定义看板娘-->
+  <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+  <script src="/live2d-widget/autoload.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome/css/font-awesome.min.css"/>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  
+     
+<div class="widget color-picker">
+  <h3 class="widget-title">Theme Preview</h3>
+  <div id="banner-toggle-bar">
+    <label for="vehicle1">Show Banner</label><br>
+    <input type="checkbox" id="banner-checkbox" name="banner-checkbox" value="show">
+  </div>
+
+  <div id="preset-list">
+    
+      <div class="preset-btn" style="background-color: #f486aa;" data-hue="0"></div>
+    
+      <div class="preset-btn" style="background-color: #fa8978;" data-hue="30"></div>
+    
+      <div class="preset-btn" style="background-color: #ee9748;" data-hue="60"></div>
+    
+      <div class="preset-btn" style="background-color: #00cab1;" data-hue="180"></div>
+    
+      <div class="preset-btn" style="background-color: #4ab8fd;" data-hue="240"></div>
+    
+      <div class="preset-btn" style="background-color: #8ca8ff;" data-hue="270"></div>
+    
+      <div class="preset-btn" style="background-color: #bc98f9;" data-hue="300"></div>
+    
+      <div class="preset-btn" style="background-color: #df8cd8;" data-hue="330"></div>
+    
+      <div class="preset-btn" style="background-color: #ec88c2;" data-hue="345"></div>
+     
+  </div>
+  <input type="range" min="0" max="360" value="85" class="slider" id="colorSlider" step="5" style="width: 100%;">
+  <p>Hue: <span id="hueValue"></span></p>
+</div>
+
+<script>
+  let slider = document.getElementById("colorSlider");
+  let output = document.getElementById("hueValue");
+  let presetList = document.getElementById("preset-list");
+  let r = document.querySelector(':root');
+  output.innerHTML = slider.value; // Display the default slider value
+
+  function getColorNode(l, c, h) {
+    return new Color("oklch", [l, c, h]).to("srgb").toString({format: "hex"});
+  }
+  function setHue(hue) {
+    localStorage.setItem('hue', hue);
+    output.innerHTML = hue;
+    slider.value = hue;
+    let colorType = {
+        'V': 1,
+        'M': 0.5,
+        'G': 0.25
+    }
+    for (let color of colors.default) {
+        for (let [name, mul] of Object.entries(colorType)) {
+          r.style.setProperty(`--${name}${color.name}`, getColorNode(color.l, color.c * mul, hue));
+        }
+    }
+
+    for (let [theme, list] of Object.entries(colors)) {
+      if (theme == 'default')
+        continue;
+      for (let color of list) {
+        r.style.setProperty(`--${theme}-${color.name}`, getColorNode(color.l, color.c, hue));
+      }
+    }
+  }
+
+  let colors;
+  fetch("/colors.json")
+    .then((res) => {
+      return res.json();
+    })
+    .then((data) => {
+      colors = data;
+      let storedHue = localStorage.getItem('hue');
+      if (storedHue) {
+        setHue(storedHue);
+      }    
+    }) 
+
+  slider.oninput = function() {
+    output.innerHTML = this.value;
+    let hue = this.value;
+    setHue(hue);
+  }
+
+  presetList.onclick = function(event) {
+    let hue = event.target.dataset.hue;
+    if (hue) {
+      setHue(hue);
+    }
+  }
+
+  // Banner switch
+
+  function enableBanner() {
+    r.setAttribute("showBanner", "true");
+    localStorage.setItem('showBanner', "true");
+  }
+  
+  function disableBanner() {
+    r.setAttribute("showBanner", "false");
+    localStorage.setItem('showBanner', "false");
+  }
+
+  let showBannerCheck = document.querySelector("input[name=banner-checkbox]");
+  if (r.getAttribute("showBanner") == "true") {
+    showBannerCheck.checked = true;
+  }
+  showBannerCheck.addEventListener('change', function() {
+    if (this.checked) {
+      enableBanner();
+    } else {
+      disableBanner();
+    }
+  });
+</script>
+  
+  
+  
+    
+<div id="banner" class="">
+  <img src="/assets/banner.jpg" itemprop="image">
+  <div id="banner-dim"></div>
+</div>
+ 
+   
+  <div id="main-grid" class="shadow   ">
+    <div id="nav" class=""  >
+      <navbar id="navbar">
+  <nav id="title-nav">
+    <a href="/">
+      <div id="xplus-logo">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div>小小黑的技术屋 </div>
+    </a>
+  </nav>
+  <nav id="main-nav">
+    
+      <a class="main-nav-link" href="/">主页</a>
+    
+      <a class="main-nav-link" href="/archives">归档</a>
+    
+      <a class="main-nav-link" href="/about">关于</a>
+    
+  </nav>
+  <nav id="sub-nav">
+    <a id="theme-btn" class="nav-icon">
+      <span class="material-symbols-rounded light-mode-icon">wb_sunny</span>
+      <span class="material-symbols-rounded dark-mode-icon">dark_mode</span>
+    </a>
+    
+      <a id="nav-rss-link" class="nav-icon mobile-hide" href="/atom.xml" title="RSS 订阅">
+        <span class="material-symbols-rounded rss">rss_feed</span>
+      </a>
+    
+    <a id="nav-search-btn" class="nav-icon" title="搜索" style="display: none;">
+      <span class="material-symbols-rounded">search</span>
+    </a>
+    <div id="nav-menu-btn" class="nav-icon">
+      <span class="material-symbols-rounded">menu</span>
+    </div>
+  </nav>
+</navbar>
+<div id="nav-dropdown" class="hidden">
+  <div id="dropdown-link-list">
+    
+      <a class="nav-dropdown-link" href="/">主页</a>
+    
+      <a class="nav-dropdown-link" href="/archives">归档</a>
+    
+      <a class="nav-dropdown-link" href="/about">关于</a>
+    
+    
+      <a class="nav-dropdown-link" href="/atom.xml" title="RSS 订阅">RSS</a>
+     
+    </div>
+</div>
+<script>
+  let dropdownBtn = document.getElementById("nav-menu-btn");
+  let dropdownEle = document.getElementById("nav-dropdown");
+  dropdownBtn.onclick = function() {
+    dropdownEle.classList.toggle("hidden");
+  }
+</script>
+    </div>
+    <div id="sidebar-wrapper">
+      <sidebar id="sidebar">
+  
+    <div class="widget-wrap">
+  <div class="info-card">
+    <div class="avatar">
+      
+        <image src=/assets/avatar.png></image>
+      
+      <div class="img-dim"></div>
+    </div>
+    <div class="info">
+      <div class="username">小小黑 </div>
+      <div class="dot"></div>
+      <div class="subtitle">这人很懒，什么也没留下 </div>
+      <div class="link-list">
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://twitter.com" title="Twitter"><i class="fa-brands fa-twitter"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://store.steampowered.com" title="Steam"><i class="fa-brands fa-steam"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://github.com/wulongtao" title="GitHub"><i class="fa-brands fa-github"></i></a>
+         
+      </div>  
+    </div>
+  </div>
+</div>
+
+  
+  <div class="sticky">
+    
+      
+
+
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">分类</h3>
+      <div class="category-box">
+            <a class="category-link" href="/categories/Hexo/">
+                Hexo
+                <div class="category-count">2</div>
+            </a>
+        </div>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">标签</h3>
+      <ul class="widget-tag-list" itemprop="keywords"><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">归档</h3>
+      
+      
+        <a class="archive-link" href="/archives/2023/07 ">
+          七月 2023 
+          <div class="archive-count">4 </div>
+        </a>
+      
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">最新文章</h3>
+      <ul>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/">轻量级虚拟机Multipass</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">雪花算法存在的问题和解决方案</a>
+          </li>
+        
+          <li>
+            <a href="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/">Hexo搭建个人网站（二）</a>
+          </li>
+        
+          <li>
+            <a href="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%B8%80%EF%BC%89/">Hexo搭建个人网站（一）</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+  </div>
+</sidebar>
+    </div>
+    <div id="content-body">
+       
+
+<article id="post-轻量级虚拟机Multipass" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  
+    
+<div class="article-gallery">
+  <div class="article-gallery-photos">
+    
+      <a class="article-gallery-img" rel="gallery_cljtepp6z0007fpol86cxb7oy">
+        <img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/cover.jpg" itemprop="image">
+      </a>
+    
+  </div>
+</div>
+
+   
+  <div class="article-inner">
+    <div class="article-main">
+      <header class="article-header">
+        
+<div class="main-title-bar">
+  <div class="main-title-dot"></div>
+  
+    
+      <h1 class="p-name article-title" itemprop="headline name">
+        轻量级虚拟机Multipass
+      </h1>
+    
+  
+</div>
+
+        <div class='meta-info-bar'>
+          <div class="meta-info">
+  <time class="dt-published" datetime="2023-07-08T08:42:23.000Z" itemprop="datePublished">2023-07-08</time>
+</div>
+          <div class="need-seperator meta-info">
+            <div class="meta-cate-flex">
+  
+  <a class="meta-cate-link" href="/categories/%E5%B0%8F%E7%9F%A5%E8%AF%86/">小知识</a>
+   
+</div>
+  
+          </div>
+          <div class="wordcount need-seperator meta-info">
+            1.2k 词 
+          </div>
+        </div>
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li></ul>
+
+      </header>
+      <div class="e-content article-entry" itemprop="articleBody">
+        
+          <p>Multipass是一个轻量级虚拟机，下面会介绍一些安装出现的问题和常用命令。</p>
+<span id="more"></span>
+
+<h3 id="下载安装"><a href="#下载安装" class="headerlink" title="下载安装"></a>下载安装</h3><p>官网</p>
+<p><a target="_blank" rel="noopener" href="https://multipass.run/">https://multipass.run/</a></p>
+<p>在windows安装必须要打开Hyper-V</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/image1.png" alt="image1.png"></p>
+<blockquote>
+<p>这里一定要是Windows专业版，家庭版是没有这个选项的</p>
+</blockquote>
+<p>如果中途安装失败可能会报C盘User目录有个乱码文件找不到的，可以试试下面的步骤：</p>
+<p>把那个Beta勾选上，然后重启</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/image2.png" alt="image2.png"></p>
+<h3 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h3><h4 id="帮助命令"><a href="#帮助命令" class="headerlink" title="帮助命令"></a>帮助命令</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">multipass <span class="token builtin class-name">help</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">Usage: multipass <span class="token punctuation">[</span>options<span class="token punctuation">]</span> <span class="token operator">&lt;</span>command<span class="token operator">></span>
+Create, control and connect to Ubuntu instances.
+
+This is a <span class="token builtin class-name">command</span> line utility <span class="token keyword">for</span> multipass, a
+<span class="token function">service</span> that manages Ubuntu instances.
+
+Options:
+  -h, <span class="token parameter variable">--help</span>     Displays <span class="token builtin class-name">help</span> on commandline options
+  -v, <span class="token parameter variable">--verbose</span>  Increase logging verbosity. Repeat the <span class="token string">'v'</span> <span class="token keyword">in</span> the short option
+                 <span class="token keyword">for</span> <span class="token function">more</span> detail. Maximum verbosity is obtained with <span class="token number">4</span> <span class="token punctuation">(</span>or <span class="token function">more</span><span class="token punctuation">)</span>
+                 v's, i.e. -vvvv.
+
+Available commands:
+  <span class="token builtin class-name">alias</span>         Create an <span class="token builtin class-name">alias</span>
+  aliases       List available aliases
+  authenticate  Authenticate client
+  delete        删除实例
+  <span class="token builtin class-name">exec</span>          在实例中执行命令
+  <span class="token function">find</span>          列出可用于创建实例的镜像
+  get           获取某个配置项
+  <span class="token builtin class-name">help</span>          查看帮助
+  info          查看实例信息
+  launch        创建并启动一个 Ubuntu 实例
+  list          列出所有可用的实例
+  <span class="token function">mount</span>         挂载文件夹到实例中
+  networks      列出可用的网络接口
+  purge         永久删除所有已删除的实例
+  recover       恢复已删除的实例
+  restart       重启实例
+  <span class="token builtin class-name">set</span>           设置某个配置项
+  shell         打开一个运行中的实例 shell
+  start         启动实例
+  stop          停止实例
+  <span class="token function">suspend</span>       挂起实例
+  transfer      在宿主机和实例之间传输文件
+  <span class="token function">umount</span>        从实例中卸载一个已挂载的目录
+  <span class="token builtin class-name">unalias</span>       Remove aliases
+  version       Show version details<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<blockquote>
+<p>如果需要详细的帮助文件执行下面命令</p>
+</blockquote>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">multipass launch <span class="token parameter variable">--help</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h4 id="查找镜像"><a href="#查找镜像" class="headerlink" title="查找镜像"></a>查找镜像</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">multipass <span class="token function">find</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/image3.png" alt="image3.png"></p>
+<h4 id="创建实例"><a href="#创建实例" class="headerlink" title="创建实例"></a>创建实例</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">
+multipass launch <span class="token punctuation">[</span>选项<span class="token punctuation">]</span> <span class="token punctuation">[</span><span class="token punctuation">[</span><span class="token operator">&lt;</span>remote:<span class="token operator">></span><span class="token punctuation">]</span><span class="token operator">&lt;</span>镜像<span class="token operator">></span> <span class="token operator">|</span> <span class="token operator">&lt;</span>url<span class="token operator">></span><span class="token punctuation">]</span>
+
+<span class="token comment"># 注意: 如果使用的镜像本地不存在, 则会先消耗一些时间下载镜像，请耐心等待</span>
+
+<span class="token comment"># 创建默认基于 lts 的实例</span>
+multipass launch
+<span class="token comment"># 和上面的效果完全一样</span>
+multipass launch lts
+
+<span class="token comment"># 自定义配置: 2核, 2G内存, 40G硬盘, 实例名称 vm2004, 使用 lts 镜像。</span>
+multipass launch <span class="token parameter variable">-c</span> <span class="token number">2</span> <span class="token parameter variable">-m</span> 2G <span class="token parameter variable">-d</span> 40G <span class="token parameter variable">-n</span> vm2004 lts
+
+<span class="token comment"># 自定义配置: 2核, 2G内存, 40G硬盘, 实例名称 vmdocker, 使用 docker 镜像。</span>
+<span class="token comment"># docker 镜像里已经安装好了 docker 和 portainer</span>
+multipass launch <span class="token parameter variable">-c</span> <span class="token number">2</span> <span class="token parameter variable">-m</span> 2G <span class="token parameter variable">-d</span> 40G <span class="token parameter variable">-n</span> vmdocker <span class="token function">docker</span>
+
+<span class="token comment"># 创建实例时执行自定义初始化配置</span>
+multipass launch <span class="token parameter variable">--name</span> ubuntu --cloud-init config.yaml
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<p>上面的 config.yaml 示例，在初始化容器的时候，自动下载安装 Node.js：</p>
+<pre class="line-numbers language-yaml" data-language="yaml"><code class="language-yaml"><span class="token comment">#cloud-config</span>
+<span class="token key atrule">runcmd</span><span class="token punctuation">:</span>
+  <span class="token punctuation">-</span> curl <span class="token punctuation">-</span>sL https<span class="token punctuation">:</span>//deb.nodesource.com/setup_12.x <span class="token punctuation">|</span> sudo <span class="token punctuation">-</span>E bash <span class="token punctuation">-</span>
+  <span class="token punctuation">-</span> sudo apt<span class="token punctuation">-</span>get install <span class="token punctuation">-</span>y nodejs<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<h4 id="查看所有可用实例"><a href="#查看所有可用实例" class="headerlink" title="查看所有可用实例"></a>查看所有可用实例</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">multipass list
+
+<span class="token comment"># or</span>
+multipass <span class="token function">ls</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h4 id="查看实例信息"><a href="#查看实例信息" class="headerlink" title="查看实例信息"></a>查看实例信息</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">multipass info primary<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h4 id="外部执行实例内的命令"><a href="#外部执行实例内的命令" class="headerlink" title="外部执行实例内的命令"></a>外部执行实例内的命令</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 执行 vm2004 实例的 pwd 命令</span>
+multipass <span class="token builtin class-name">exec</span> vm2004 <span class="token builtin class-name">pwd</span>
+<span class="token comment"># 输出: /home/ubuntu</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+
+
+<h4 id="进入实例内部-shell"><a href="#进入实例内部-shell" class="headerlink" title="进入实例内部 shell"></a>进入实例内部 shell</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 进入 vm2004 实例的 shell</span>
+multipass shell vm2004<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<h4 id="挂载目录"><a href="#挂载目录" class="headerlink" title="挂载目录"></a>挂载目录</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 命令格式</span>
+multipass <span class="token function">mount</span>  宿主机目录  实例名:实例内目录
+
+<span class="token comment"># 举个🌰</span>
+multipass <span class="token function">mount</span> /Users/mac/hello vm2004:/hello
+
+<span class="token comment"># 查看 vm2004 信息</span>
+multipass info vm2004<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">Name:           vm2004
+State:          Running
+IPv4:           <span class="token number">172.16</span>.198.13
+Release:        Ubuntu <span class="token number">20.04</span>.4 LTS
+Image hash:     692406940d6a <span class="token punctuation">(</span>Ubuntu <span class="token number">20.04</span> LTS<span class="token punctuation">)</span>
+Load:           <span class="token number">0.00</span> <span class="token number">0.11</span> <span class="token number">0.08</span>
+Disk usage:     <span class="token number">1</span>.6G out of <span class="token number">38</span>.6G
+Memory usage:   <span class="token number">149</span>.6M out of <span class="token number">1</span>.9G
+Mounts:         /Users/mac/hello <span class="token operator">=</span><span class="token operator">></span> /hello
+                    <span class="token environment constant">UID</span> map: <span class="token number">501</span>:default
+                    GID map: <span class="token number">20</span>:default<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h4 id="卸载挂载目录"><a href="#卸载挂载目录" class="headerlink" title="卸载挂载目录"></a>卸载挂载目录</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 命令格式, 如果未指定挂载路径则卸载实例内的所有挂载目录</span>
+multipass <span class="token function">umount</span> <span class="token operator">&lt;</span>实例名<span class="token operator">></span><span class="token punctuation">[</span>:<span class="token operator">&lt;</span>挂载路径<span class="token operator">></span><span class="token punctuation">]</span>
+
+<span class="token comment"># 举个🌰</span>
+multipass <span class="token function">umount</span> vm2004:/hello<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<h4 id="启动实例"><a href="#启动实例" class="headerlink" title="启动实例"></a>启动实例</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 命令格式</span>
+multipass start <span class="token punctuation">[</span>实例名称<span class="token punctuation">]</span>
+
+<span class="token comment"># 启动一个名叫 primary 的默认实例，注意第一次启动会先消耗一些时间下载镜像，请耐心等待</span>
+multipass start
+
+<span class="token comment"># 启动一个名叫 vm2004 的实例，该实例必须是已存在的</span>
+multipass start vm2004<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h4 id="停止实例"><a href="#停止实例" class="headerlink" title="停止实例"></a>停止实例</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 命令格式</span>
+multipass stop <span class="token punctuation">[</span>--all<span class="token punctuation">]</span> <span class="token punctuation">[</span>实例名称<span class="token punctuation">]</span>
+
+<span class="token comment"># 停止所有实例</span>
+multipass stop <span class="token parameter variable">--all</span>
+
+<span class="token comment"># 停止名为 judicious-spittlebug 的实例</span>
+multipass stop judicious-spittlebug
+
+<span class="token comment"># 停止 primary 实例</span>
+multipass stop primary
+<span class="token comment"># 未指定实例名, 且未指定 --all, 则默认操作 primary 实例</span>
+multipass stop<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h4 id="删除实例"><a href="#删除实例" class="headerlink" title="删除实例"></a>删除实例</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 命令格式,</span>
+<span class="token comment"># --all: 删除所有实例[软删]</span>
+<span class="token comment"># -p: 立即清除实例[彻底删除]</span>
+multipass delete <span class="token punctuation">[</span>--all<span class="token punctuation">]</span> <span class="token punctuation">[</span>--purge <span class="token operator">|</span> -p<span class="token punctuation">]</span> <span class="token punctuation">[</span>实例名称<span class="token punctuation">]</span>
+
+<span class="token comment"># 删除 judicious-spittlebug</span>
+multipass delete judicious-spittlebug<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h4 id="恢复已删除实例"><a href="#恢复已删除实例" class="headerlink" title="恢复已删除实例"></a>恢复已删除实例</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 恢复 judicious-spittlebug</span>
+multipass recover judicious-spittlebug<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<h4 id="彻底删除实例"><a href="#彻底删除实例" class="headerlink" title="彻底删除实例"></a>彻底删除实例</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 永久清除所有已删除的实例, 包括它们的数据</span>
+multipass purge
+
+
+<span class="token comment">## 或者在软删除的时候通过 --purge 参数来完全删除实例</span>
+<span class="token comment"># 如: 删除 judicious-spittlebug</span>
+multipass delete <span class="token parameter variable">-p</span> judicious-spittlebug<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h3 id="遗留问题"><a href="#遗留问题" class="headerlink" title="遗留问题"></a>遗留问题</h3><p>目前Windows环境创建的实例只能存在C盘，导致C盘占用空间很大，还没有解决方案。。。</p>
+<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p><a target="_blank" rel="noopener" href="https://www.qinwg.cn/n/macos/03-multipass.html">https://www.qinwg.cn/n/macos/03-multipass.html</a></p>
+
+        
+      </div>
+
+         
+    </div>
+    
+     
+  </div>
+  
+    
+<nav id="article-nav">
+  <a class="article-nav-btn left  disabled "
+     >
+    <i class="fa-solid fa-angle-left"></i>
+    <p class="title-text">
+        
+    </p>
+  </a>
+  <a class="article-nav-btn right "
+    
+      href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/"
+      title="雪花算法存在的问题和解决方案"
+     >
+
+    <p class="title-text">
+      
+        雪花算法存在的问题和解决方案
+        
+    </p>
+    <i class="fa-solid fa-angle-right"></i>
+  </a>
+</nav>
+
+
+  
+</article>
+
+
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <div id="comment-card" class="comment-card">
+    <div class="main-title-bar">
+      <div class="main-title-dot"></div>
+      <div class="main-title">留言 </div>
+    </div>
+    <div id="vcomments"></div>
+  </div>
+  <script>
+      new Valine({
+          el: '#vcomments',
+          appId: "aATTmxUhzg7OkRG9GnE06Ch1-gzGzoHsz",
+          appKey: "bWpGMa0b4Bog7V2uuvlAGp60"
+      })
+  </script>
+ 
+    </div>
+    <div id="footer-wrapper">
+      <footer id="footer">
+  
+  <div id="footer-info" class="inner">
+    
+    &copy; 2023 小小黑<br>
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & Theme <a target="_blank" rel="noopener" href="https://github.com/wulongtao/hexo-theme-xplus">xplus</a>
+  </div>
+</footer>
+
+    </div>
+    <div class="back-to-top-wrapper">
+    <button id="back-to-top-btn" class="back-to-top-btn" onclick="topFunction()">
+        <span class="material-symbols-rounded">keyboard_arrow_up</span>
+    </button>
+</div>
+
+<script>
+    function topFunction() {
+        window.scroll({ top: 0, behavior: 'smooth' });
+    }
+    let btn = document.getElementById('back-to-top-btn');
+    function scrollFunction() {
+        if (document.body.scrollTop > 600 || document.documentElement.scrollTop > 600) {
+            btn.style.opacity = 1;
+        } else {
+            btn.style.opacity = 0;
+        }
+    }
+    window.onscroll = function() {
+        scrollFunction();
+    }
+</script>
+
+  </div>
+  <script src="/js/light-dark-switch.js"></script>
+</body>
+</html>
