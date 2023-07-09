@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+
+
+<html theme="dark" showBanner="true" hasBanner="desktop" > 
+<link href="/fontawesome/css/fontawesome.css" rel="stylesheet">
+<link href="/fontawesome/css/brands.css" rel="stylesheet">
+<link href="/fontawesome/css/solid.css" rel="stylesheet">
+<script src="/js/color.global.min.js" ></script>
+<script src="/js/load-settings.js" ></script>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>归档 | 小小黑的技术屋</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="分布式一致性算法解决的是CAP理论中走的是CP、还是AP的问题，这些算法要么实现的是数据的强一致性（CP），要么实现数据的最终一致性（AP）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式一致性算法">
+<meta property="og:url" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/index.html">
+<meta property="og:site_name" content="小小黑的技术屋">
+<meta property="og:description" content="分布式一致性算法解决的是CAP理论中走的是CP、还是AP的问题，这些算法要么实现的是数据的强一致性（CP），要么实现数据的最终一致性（AP）">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/cover.png">
+<meta property="article:published_time" content="2023-07-09T08:40:53.000Z">
+<meta property="article:modified_time" content="2023-07-09T08:40:53.000Z">
+<meta property="article:author" content="xxiaohei">
+<meta property="article:tag" content="分布式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wulongtao.github.io/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/cover.png">
+  
+    <link rel="alternate" href="/atom.xml" title="小小黑的技术屋" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/assets/favicon.ico">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  <!--自定义看板娘-->
+  <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+  <script src="/live2d-widget/autoload.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome/css/font-awesome.min.css"/>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  
+     
+<div class="widget color-picker">
+  <h3 class="widget-title">Theme Preview</h3>
+  <div id="banner-toggle-bar">
+    <label for="vehicle1">Show Banner</label><br>
+    <input type="checkbox" id="banner-checkbox" name="banner-checkbox" value="show">
+  </div>
+
+  <div id="preset-list">
+    
+      <div class="preset-btn" style="background-color: #f486aa;" data-hue="0"></div>
+    
+      <div class="preset-btn" style="background-color: #fa8978;" data-hue="30"></div>
+    
+      <div class="preset-btn" style="background-color: #ee9748;" data-hue="60"></div>
+    
+      <div class="preset-btn" style="background-color: #00cab1;" data-hue="180"></div>
+    
+      <div class="preset-btn" style="background-color: #4ab8fd;" data-hue="240"></div>
+    
+      <div class="preset-btn" style="background-color: #8ca8ff;" data-hue="270"></div>
+    
+      <div class="preset-btn" style="background-color: #bc98f9;" data-hue="300"></div>
+    
+      <div class="preset-btn" style="background-color: #df8cd8;" data-hue="330"></div>
+    
+      <div class="preset-btn" style="background-color: #ec88c2;" data-hue="345"></div>
+     
+  </div>
+  <input type="range" min="0" max="360" value="85" class="slider" id="colorSlider" step="5" style="width: 100%;">
+  <p>Hue: <span id="hueValue"></span></p>
+</div>
+
+<script>
+  let slider = document.getElementById("colorSlider");
+  let output = document.getElementById("hueValue");
+  let presetList = document.getElementById("preset-list");
+  let r = document.querySelector(':root');
+  output.innerHTML = slider.value; // Display the default slider value
+
+  function getColorNode(l, c, h) {
+    return new Color("oklch", [l, c, h]).to("srgb").toString({format: "hex"});
+  }
+  function setHue(hue) {
+    localStorage.setItem('hue', hue);
+    output.innerHTML = hue;
+    slider.value = hue;
+    let colorType = {
+        'V': 1,
+        'M': 0.5,
+        'G': 0.25
+    }
+    for (let color of colors.default) {
+        for (let [name, mul] of Object.entries(colorType)) {
+          r.style.setProperty(`--${name}${color.name}`, getColorNode(color.l, color.c * mul, hue));
+        }
+    }
+
+    for (let [theme, list] of Object.entries(colors)) {
+      if (theme == 'default')
+        continue;
+      for (let color of list) {
+        r.style.setProperty(`--${theme}-${color.name}`, getColorNode(color.l, color.c, hue));
+      }
+    }
+  }
+
+  let colors;
+  fetch("/colors.json")
+    .then((res) => {
+      return res.json();
+    })
+    .then((data) => {
+      colors = data;
+      let storedHue = localStorage.getItem('hue');
+      if (storedHue) {
+        setHue(storedHue);
+      }    
+    }) 
+
+  slider.oninput = function() {
+    output.innerHTML = this.value;
+    let hue = this.value;
+    setHue(hue);
+  }
+
+  presetList.onclick = function(event) {
+    let hue = event.target.dataset.hue;
+    if (hue) {
+      setHue(hue);
+    }
+  }
+
+  // Banner switch
+
+  function enableBanner() {
+    r.setAttribute("showBanner", "true");
+    localStorage.setItem('showBanner', "true");
+  }
+  
+  function disableBanner() {
+    r.setAttribute("showBanner", "false");
+    localStorage.setItem('showBanner', "false");
+  }
+
+  let showBannerCheck = document.querySelector("input[name=banner-checkbox]");
+  if (r.getAttribute("showBanner") == "true") {
+    showBannerCheck.checked = true;
+  }
+  showBannerCheck.addEventListener('change', function() {
+    if (this.checked) {
+      enableBanner();
+    } else {
+      disableBanner();
+    }
+  });
+</script>
+  
+  
+  
+    
+<div id="banner" class="">
+  <img src="/assets/banner.jpg" itemprop="image">
+  <div id="banner-dim"></div>
+</div>
+ 
+   
+  <div id="main-grid" class="shadow   ">
+    <div id="nav" class=""  >
+      <navbar id="navbar">
+  <nav id="title-nav">
+    <a href="/">
+      <div id="xplus-logo">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div>小小黑的技术屋 </div>
+    </a>
+  </nav>
+  <nav id="main-nav">
+    
+      <a class="main-nav-link" href="/">主页</a>
+    
+      <a class="main-nav-link" href="/archives">归档</a>
+    
+      <a class="main-nav-link" href="/about">关于</a>
+    
+  </nav>
+  <nav id="sub-nav">
+    <a id="theme-btn" class="nav-icon">
+      <span class="material-symbols-rounded light-mode-icon">wb_sunny</span>
+      <span class="material-symbols-rounded dark-mode-icon">dark_mode</span>
+    </a>
+    
+      <a id="nav-rss-link" class="nav-icon mobile-hide" href="/atom.xml" title="RSS 订阅">
+        <span class="material-symbols-rounded rss">rss_feed</span>
+      </a>
+    
+    <a id="nav-search-btn" class="nav-icon" title="搜索" style="display: none;">
+      <span class="material-symbols-rounded">search</span>
+    </a>
+    <div id="nav-menu-btn" class="nav-icon">
+      <span class="material-symbols-rounded">menu</span>
+    </div>
+  </nav>
+</navbar>
+<div id="nav-dropdown" class="hidden">
+  <div id="dropdown-link-list">
+    
+      <a class="nav-dropdown-link" href="/">主页</a>
+    
+      <a class="nav-dropdown-link" href="/archives">归档</a>
+    
+      <a class="nav-dropdown-link" href="/about">关于</a>
+    
+    
+      <a class="nav-dropdown-link" href="/atom.xml" title="RSS 订阅">RSS</a>
+     
+    </div>
+</div>
+<script>
+  let dropdownBtn = document.getElementById("nav-menu-btn");
+  let dropdownEle = document.getElementById("nav-dropdown");
+  dropdownBtn.onclick = function() {
+    dropdownEle.classList.toggle("hidden");
+  }
+</script>
+    </div>
+    <div id="sidebar-wrapper">
+      <sidebar id="sidebar">
+  
+    <div class="widget-wrap">
+  <div class="info-card">
+    <div class="avatar">
+      
+        <image src=/assets/avatar.png></image>
+      
+      <div class="img-dim"></div>
+    </div>
+    <div class="info">
+      <div class="username">小小黑 </div>
+      <div class="dot"></div>
+      <div class="subtitle">这人很懒，什么也没留下 </div>
+      <div class="link-list">
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://twitter.com" title="Twitter"><i class="fa-brands fa-twitter"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://store.steampowered.com" title="Steam"><i class="fa-brands fa-steam"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://github.com/wulongtao" title="GitHub"><i class="fa-brands fa-github"></i></a>
+         
+      </div>  
+    </div>
+  </div>
+</div>
+
+  
+  <div class="sticky">
+    
+      
+
+
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">分类</h3>
+      <div class="category-box">
+            <a class="category-link" href="/categories/Hexo/">
+                Hexo
+                <div class="category-count">2</div>
+            </a>
+        </div>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">标签</h3>
+      <ul class="widget-tag-list" itemprop="keywords"><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">归档</h3>
+      
+      
+        <a class="archive-link" href="/archives/2023/07 ">
+          七月 2023 
+          <div class="archive-count">5 </div>
+        </a>
+      
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">最新文章</h3>
+      <ul>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/">分布式一致性算法</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/">轻量级虚拟机Multipass</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">雪花算法存在的问题和解决方案</a>
+          </li>
+        
+          <li>
+            <a href="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/">Hexo搭建个人网站（二）</a>
+          </li>
+        
+          <li>
+            <a href="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%B8%80%EF%BC%89/">Hexo搭建个人网站（一）</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+  </div>
+</sidebar>
+    </div>
+    <div id="content-body">
+       
+
+<article id="post-分布式一致性算法" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  
+    
+<div class="article-gallery">
+  <div class="article-gallery-photos">
+    
+      <a class="article-gallery-img" rel="gallery_cljv2mxnb0007g3oieo4p08xk">
+        <img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/cover.png" itemprop="image">
+      </a>
+    
+  </div>
+</div>
+
+   
+  <div class="article-inner">
+    <div class="article-main">
+      <header class="article-header">
+        
+<div class="main-title-bar">
+  <div class="main-title-dot"></div>
+  
+    
+      <h1 class="p-name article-title" itemprop="headline name">
+        分布式一致性算法
+      </h1>
+    
+  
+</div>
+
+        <div class='meta-info-bar'>
+          <div class="meta-info">
+  <time class="dt-published" datetime="2023-07-09T08:40:53.000Z" itemprop="datePublished">2023-07-09</time>
+</div>
+          <div class="need-seperator meta-info">
+            <div class="meta-cate-flex">
+  
+  <a class="meta-cate-link" href="/categories/%E5%B0%8F%E7%9F%A5%E8%AF%86/">小知识</a>
+   
+</div>
+  
+          </div>
+          <div class="wordcount need-seperator meta-info">
+            4.9k 词 
+          </div>
+        </div>
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li></ul>
+
+      </header>
+      <div class="e-content article-entry" itemprop="articleBody">
+        
+          <p>分布式一致性算法解决的是CAP理论中走的是CP、还是AP的问题，这些算法要么实现的是数据的强一致性（CP），要么实现数据的最终一致性（AP）</p>
+<span id="more"></span>
+
+<h2 id="强一致性共识算法"><a href="#强一致性共识算法" class="headerlink" title="强一致性共识算法"></a>强一致性共识算法</h2><h3 id="同步"><a href="#同步" class="headerlink" title="同步"></a>同步</h3><p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image1.png" alt="image1.png"></p>
+<ol>
+<li>master节点接收写请求</li>
+<li>master把日志同步到各个slave</li>
+<li>master阻塞等待slave同步完成</li>
+</ol>
+<blockquote>
+<p>产生的问题，一个节点挂了，导致整个集群不可用</p>
+</blockquote>
+<h3 id="Paxos"><a href="#Paxos" class="headerlink" title="Paxos"></a>Paxos</h3><h4 id="Paxos将系统中五个角色"><a href="#Paxos将系统中五个角色" class="headerlink" title="Paxos将系统中五个角色"></a>Paxos将系统中五个角色</h4><p><strong>Proposal提案</strong>： Propser提出的议案或者建议，（提案编号N，提案内容value）</p>
+<p><strong>Propser</strong>：向集群提出议案，在发生冲突的时候起到冲突调节的作用</p>
+<p><strong>Acceptor</strong>：对提议进行投票，只有在达到多数派时提议才会最终被接受</p>
+<p><strong>Learner</strong>：提议接收者，对集群一致性没什么影响，单纯的记录人员</p>
+<h4 id="Basic-Paxos算法"><a href="#Basic-Paxos算法" class="headerlink" title="Basic Paxos算法"></a>Basic Paxos算法</h4><ol>
+<li>Propser准备一个N号提案</li>
+<li>Propser询问Acceptor中的多数派是否接收过N号的提案，如果都没有进入下一步，否则本提案不被考虑</li>
+<li>Acceptor开始表决，Acceptor无条件同意从未接收过的N号提案，达到多数派同意后，进入下一步</li>
+<li>Learner记录提案</li>
+</ol>
+<blockquote>
+<p>存在活锁现象：假设有两个Propser，第一个Propser发出的编号为1，Acceptor还没处理完，第二个Propser发送了一个编号为2的请求，此时第一个提案被拒绝了；被拒绝的提案会把编号设置成3再提交，此时第二个Propser又被剧绝了，然后会造成死循环。</p>
+</blockquote>
+<h3 id="Raft"><a href="#Raft" class="headerlink" title="Raft"></a>Raft</h3><h4 id="一个节点有三种状态"><a href="#一个节点有三种状态" class="headerlink" title="一个节点有三种状态"></a>一个节点有三种状态</h4><p>Leader总统节点，负责发出提案</p>
+<p>Follower追随者节点，负责同意Leader发出的提案</p>
+<p>Candidate候选人，负责争夺Leader</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image2.png" alt="image2.png"></p>
+<h4 id="选举"><a href="#选举" class="headerlink" title="选举"></a>选举</h4><p>首先每一个节点，都有一个定时器，定时器循环的时间是随机的</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image3.png" alt="image3.png"></p>
+<p>当定时器时间到了而集群中仍然没有Leader，Follower将声明自己是Candidate并参与Leader选举，同时将消息发给其他节点来争取他们的投票，若其他节点长时间没有响应Candidate将重新发送选举信息</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image5.png" alt="image5.png"></p>
+<p>集群中其他节点将给Candidate投票</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image6.png" alt="image6.png"></p>
+<p>获得多数派支持的Candidate将成为第M任Leader（M任是最新的任期）</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image7.png" alt="image7.png"></p>
+<p>在任期内的Leader会不断发送心跳给其他节点证明自己还活着，其他节点受到心跳以后就清空自己的计时器并回复Leader的心跳。这个机制保证其他节点不会在Leader任期内参加Leader选举。而且这个心跳机制还可以用作奔溃回复过程中的节点数据同步。</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image8.png" alt="image8.png"></p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image9.png" alt="image9.png"></p>
+<p>当Leader节点出现故障而导致Leader失联，没有接收到心跳的Follower节点将准备成为Candidate进入下一轮Leader选举</p>
+<p>若出现两个Candidate同时选举并获得了相同的票数，那么这两个Candidate将随机推迟一段时间后再向其他节点发出投票请求，这保证了再次发送投票请求以后不冲突</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image10.png" alt="image10.png"></p>
+<h4 id="状态复制"><a href="#状态复制" class="headerlink" title="状态复制"></a>状态复制</h4><p>Leader负责接收来自Client的提案请求（红色提案表示未确认）</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image11.png" alt="image11.png"></p>
+<p>提案内容将包含在Leader发出的下一个心跳中</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image12.png" alt="image12.png"></p>
+<p>Follower接收到心跳以后回复Leader的心跳，Leader接收到多数派Follower的回复以后确认提案并写入自己的存储空间中并回复Client</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image13.png" alt="image13.png"></p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image14.png" alt="image14.png"></p>
+<h4 id="脑裂"><a href="#脑裂" class="headerlink" title="脑裂"></a>脑裂</h4><p>出现了网络分区导致有两个leader，本来五个节点有一个leader B，但是出现了网络分区导致A、B节点和C、D、E节点分开了，C、D、E节点重新选了一个leader C。</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image15.png" alt="image15.png"></p>
+<p>当集群再次连通时，将只听从最新任期Leader的指挥，旧Leader将退化为Follower，如图中B节点的Leader（任期1）需要听从D节点的Leader（任期2）的指挥，此时集群重新达到一致性状态。</p>
+<blockquote>
+<p>这也是为什么节点数要设置为&gt;2的奇数的原因，因为出现了脑裂，只要是奇数，就两个分区中只会有一个正常提供服务，另外一个网络分区属于不可用状态，如果是偶数就会出现只要出现脑裂，就会导致整个集群都不可用的状态。</p>
+</blockquote>
+<p>设置为奇数的另外一个原因是在容错能力相同的情况下，奇数台更节省资源。<br>leader选举，要求 可用节点数量 &gt; 总节点数量&#x2F;2  。注意 是 &gt; , 不是 ≥。</p>
+<p>举两个例子：</p>
+<p>(1) 假如zookeeper集群1 ，有3个节点，3&#x2F;2&#x3D;1.5 ,  即zookeeper想要正常对外提供服务（即leader选举成功），至少需要2个节点是正常的。换句话说，3个节点的zookeeper集群，允许有一个节点宕机。</p>
+<p>(2) 假如zookeeper集群2，有4个节点，4&#x2F;2&#x3D;2 , 即zookeeper想要正常对外提供服务（即leader选举成功），至少需要3个节点是正常的。换句话说，4个节点的zookeeper集群，也允许有一个节点宕机。</p>
+<p>那么问题就来了， 集群1与集群2都有 允许1个节点宕机 的容错能力，但是集群2比集群1多了1个节点。在相同容错能力的情况下，本着节约资源的原则，zookeeper集群的节点数维持奇数个更好一些。</p>
+<p>可视化网站：</p>
+<p><a target="_blank" rel="noopener" href="https://raft.github.io/">https://raft.github.io/</a></p>
+<p><a target="_blank" rel="noopener" href="https://thesecretlivesofdata.com/raft/">https://thesecretlivesofdata.com/raft/</a></p>
+<h3 id="ZAB"><a href="#ZAB" class="headerlink" title="ZAB"></a>ZAB</h3><blockquote>
+<p>ZAB 协议全称：Zookeeper Atomic Broadcast（Zookeeper 原子广播协议）。</p>
+</blockquote>
+<ol>
+<li>Zookeeper 是一个为分布式应用提供高效且可靠的分布式协调服务。在解决分布式一致性方面，Zookeeper 并没有使用 Paxos ，而是采用了 ZAB 协议。</li>
+<li>ZAB 协议定义：ZAB 协议是为分布式协调服务 Zookeeper 专门设计的一种支持 崩溃恢复 和 原子广播 协议。下面我们会重点讲这两个东西。</li>
+<li>基于该协议，Zookeeper 实现了一种 主备模式 的系统架构来保持集群中各个副本之间数据一致性。具体如下图所示：</li>
+</ol>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image16.png" alt="image16.png"></p>
+<p>上图显示了 Zookeeper 如何处理集群中的数据。所有客户端写入数据都是写入到 主进程（称为 Leader）中，然后，由 Leader 复制到备份进程（称为 Follower）中。从而保证数据一致性。从设计上看，和 Raft 类似。</p>
+<p>那么复制过程又是如何的呢？复制过程类似 2PC，ZAB 只需要 Follower 有一半以上返回 Ack 信息就可以执行提交，大大减小了同步阻塞。也提高了可用性。</p>
+<p>简单介绍完，开始重点介绍 消息广播 和 崩溃恢复。整个 Zookeeper 就是在这两个模式之间切换。 简而言之，当 Leader 服务可以正常使用，就进入消息广播模式，当 Leader 不可用时，则进入崩溃恢复模式。</p>
+<h5 id="消息广播"><a href="#消息广播" class="headerlink" title="消息广播"></a>消息广播</h5><p>将数据都复制到 Follwer 中</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image17.png" alt="image17.png"></p>
+<p>等待 Follwer 回应 Ack，最低超过半数即成功</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image18.png" alt="image18.png"></p>
+<p>当超过半数成功回应，则执行 commit ，同时提交自己</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image19.png" alt="image19.png"></p>
+<p>通过以上 3 个步骤，就能够保持集群之间数据的一致性。实际上，在 Leader 和 Follwer 之间还有一个消息队列，用来解耦他们之间的耦合，避免同步，实现异步解耦。</p>
+<p>还有一些细节：</p>
+<ul>
+<li>Leader 在收到客户端请求之后，会将这个请求封装成一个事务，并给这个事务分配一个全局递增的唯一 ID，称为事务ID（ZXID），ZAB 兮协议需要保证事务的顺序，因此必须将每一个事务按照 ZXID 进行先后排序然后处理。</li>
+<li>在 Leader 和 Follwer 之间还有一个消息队列，用来解耦他们之间的耦合，解除同步阻塞。</li>
+<li>zookeeper集群中为保证任何所有进程能够有序的顺序执行，只能是 Leader 服务器接受写请求，即使是 Follower 服务器接受到客户端的请求，也会转发到 Leader 服务器进行处理。</li>
+<li>实际上，这是一种简化版本的 2PC，不能解决单点问题。等会我们会讲述 ZAB 如何解决单点问题（即 Leader 崩溃问题）。</li>
+</ul>
+<h5 id="崩溃恢复"><a href="#崩溃恢复" class="headerlink" title="崩溃恢复"></a>崩溃恢复</h5><p>刚刚我们说消息广播过程中，Leader 崩溃怎么办？还能保证数据一致吗？如果 Leader 先本地提交了，然后 commit 请求没有发送出去，怎么办？实际上，当 Leader 崩溃，即进入我们开头所说的崩溃恢复模式（崩溃即：Leader 失去与过半 Follwer 的联系）。下面来详细讲述。</p>
+<ul>
+<li>假设1：Leader 在复制数据给所有 Follwer 之后崩溃，怎么办？</li>
+<li>假设2：Leader 在收到 Ack 并提交了自己，同时发送了部分 commit 出去之后崩溃怎么办？</li>
+</ul>
+<p>针对这些问题，ZAB 定义了 2 个原则：</p>
+<ul>
+<li>ZAB 协议确保那些已经在 Leader 提交的事务最终会被所有服务器提交。</li>
+<li>ZAB 协议确保丢弃那些只在 Leader 提出&#x2F;复制，但没有提交的事务。</li>
+</ul>
+<p>所以，ZAB 设计了下面这样一个选举算法：能够确保提交已经被 Leader 提交的事务，同时丢弃已经被跳过的事务。</p>
+<p>针对这个要求，如果让 Leader 选举算法能够保证新选举出来的 Leader 服务器拥有集群总所有机器编号（即 ZXID 最大）的事务，那么就能够保证这个新选举出来的 Leader 一定具有所有已经提交的提案。</p>
+<p>而且这么做有一个好处是：可以省去 Leader 服务器检查事务的提交和丢弃工作的这一步操作。</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image20.png" alt="image20.png"></p>
+<p>这样，我们刚刚假设的两个问题便能够解决。假设 1 最终会丢弃调用没有提交的数据，假设 2 最终会同步所有服务器的数据。这个时候，就引出了一个问题，如何同步？</p>
+<h5 id="数据同步"><a href="#数据同步" class="headerlink" title="数据同步"></a>数据同步</h5><p>当崩溃恢复之后，需要在正式工作之前（接收客户端请求），Leader 服务器首先确认事务是否都已经被过半的 Follwer 提交了，即是否完成了数据同步。目的是为了保持数据一致。</p>
+<p>当所有的 Follwer 服务器都成功同步之后，Leader 会将这些服务器加入到可用服务器列表中。</p>
+<p>实际上，Leader 服务器处理或丢弃事务都是依赖着 ZXID 的，那么这个 ZXID 如何生成呢？</p>
+<p>答：在 ZAB 协议的事务编号 ZXID 设计中，ZXID 是一个 64 位的数字，其中低 32 位可以看作是一个简单的递增的计数器，针对客户端的每一个事务请求，Leader 都会产生一个新的事务 Proposal 并对该计数器进行 + 1 操作。</p>
+<p>而高 32 位则代表了 Leader 服务器上取出本地日志中最大事务 Proposal 的 ZXID，并从该 ZXID 中解析出对应的 epoch 值，然后再对这个值加一。</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image21.png" alt="image21.png"></p>
+<p>高 32 位代表了每代 Leader 的唯一性，低 32 代表了每代 Leader 中事务的唯一性。同时，也能让 Follwer 通过高 32 位识别不同的 Leader。简化了数据恢复流程。</p>
+<p>基于这样的策略：当 Follower 链接上 Leader 之后，Leader 服务器会根据自己服务器上最后被提交的 ZXID 和 Follower 上的 ZXID 进行比对，比对结果要么回滚，要么和 Leader 同步。</p>
+<p>ZAB也是对Multi Paxos算法的改进，大部分和raft相同 和raft算法的主要区别：</p>
+<ol>
+<li>对于Leader的任期，raft叫做term，而ZAB叫做epoch</li>
+<li>在状态复制的过程中，raft的心跳从Leader向Follower发送，而ZAB则相反。</li>
+</ol>
+<h2 id="弱一致性算法"><a href="#弱一致性算法" class="headerlink" title="弱一致性算法"></a>弱一致性算法</h2><h3 id="DNS系统"><a href="#DNS系统" class="headerlink" title="DNS系统"></a>DNS系统</h3><p>在 DNS 协议中，域名每个解析记录都有 TTL(Time to live) 属性，当我们用浏览器访问网站时，首先查看这个域名在本地的缓存，若最后更新的时间距离现在没有超过 TTL，则直接使用，否则去 DNS server上获取该域名的IP。所以我们在 Name Server 上修改某条记录后，不会立刻扩散(同步)到所有的缓存服务器上，而是由各个层级的服务器根据自己的缓存判断是否过期，若过期才去同步数据。最终 的含义就在于此，由此可见如果修改一条 DNS 解析记录，最长可能要等待一个 TTL 周期才能获取最新数据，同样如果你用的 DNS 服务器如果已经有人尝试更新，服务器就不需要再次去 Name Server 更新数据了。这种分布式方式通过层层缓存大大降低了 Name Server 的负载。当然代价是一定时间更新延迟。所以在网络基础设施不发达的时期，DNS 依然能保证域名解析的性能。</p>
+<p>从 DNS 这个应用来看，最终一致性大大提升了访问性能，但是需要业务逻辑处理数据更新延迟。所以如果更新远远少于读写，且能够接受短时的同步延迟是可以采用最终一致性并且做动态的数据更新操作，而不是简单的设个TTL。而对于频繁更新且延迟敏感的需求则不太适合用最终一致性。</p>
+<h3 id="Gossip"><a href="#Gossip" class="headerlink" title="Gossip"></a>Gossip</h3><p>Gossip是一种去中心化、容错并保证最终一致性的协议。</p>
+<h4 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h4><p>Gossip协议基本思想就是：一个节点想要分享一些信息给网络中的其他的一些节点。于是，它周期性的随机选择一些节点，并把信息传递给这些节点。这些收到信息的节点接下来会做同样的事情，即把这些信息传递给其他一些随机选择的节点。一般而言，信息会周期性的传递给N个目标节点，而不只是一个。这个N被称为fanout（这个单词的本意是扇出）。</p>
+<h4 id="用途"><a href="#用途" class="headerlink" title="用途"></a>用途</h4><p>Gossip协议的主要用途就是信息传播和扩散：即把一些发生的事件传播到全世界。它们也被用于数据库复制，信息扩散，集群成员身份确认，故障探测等。</p>
+<p>基于Gossip协议的一些有名的系统：Apache Cassandra，Redis（Cluster模式），Consul等。</p>
+<h4 id="图解"><a href="#图解" class="headerlink" title="图解"></a>图解</h4><p>接下来通过多张图片剖析Gossip协议是如何运行的。如下图所示，Gossip协议是周期循环执行的。图中的公式表示Gossip协议把信息传播到每一个节点需要多少次循环动作，需要说明的是，公式中的20表示整个集群有20个节点，4表示某个节点会向4个目标节点传播消息：</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image22.png" alt="image22.png"></p>
+<p>如下图所示，红色的节点表示其已经“受到感染”，即接下来要传播信息的源头，连线表示这个初始化感染的节点能正常连接的节点（其不能连接的节点只能靠接下来感染的节点向其传播消息）。并且N等于4，我们假设4根较粗的线路，就是它第一次传播消息的线路：</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image23.png" alt="image23.png"></p>
+<p>第一次消息完成传播后，新增了4个节点会被“感染”，即这4个节点也收到了消息。这时候，总计有5个节点变成红色：</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image24.png" alt="image24.png"></p>
+<p>那么在下一次传播周期时，总计有5个节点，且这5个节点每个节点都会向4个节点传播消息。最后，经过3次循环，20个节点全部被感染（都变成红色节点），即说明需要传播的消息已经传播给了所有节点：</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image25.png" alt="image25.png"></p>
+<p>需要说明的是，20个节点且设置fanout&#x3D;4，公式结果是2.16，这只是个近似值。真实传递时，可能需要3次甚至4次循环才能让所有节点收到消息。这是因为每个节点在传播消息的时候，是随机选择N个节点的，这样的话，就有可能某个节点会被选中2次甚至更多次。</p>
+<h4 id="发送消息"><a href="#发送消息" class="headerlink" title="发送消息"></a>发送消息</h4><p>由前面对Gossip协议图解分析可知，节点传播消息是周期性的，并且每个节点有它自己的周期。另外，节点发送消息时的目标节点数由参数fanout决定。至于往哪些目标节点发送，则是随机的。</p>
+<p>一旦消息被发送到目标节点，那么目标节点也会被感染。一旦某个节点被感染，那么它也会向其他节点传播消息，试图感染更多的节点。最终，每一个节点都会被感染，即消息被同步给了所有节点。</p>
+<p>Gossip协议是可扩展的，因为它只需要O(logN) 个周期就能把消息传播给所有节点。某个节点在往固定数量节点传播消息过程中，并不需要等待确认（ack），并且，即使某条消息传播过程中丢失，它也不需要做任何补偿措施。大哥比方，某个节点本来需要将消息传播给4个节点，但是由于网络或者其他原因，只有3个消息接收到消息，即使这样，这对最终所有节点接收到消息是没有任何影响的。</p>
+<p>如下表格所示，假定fanout&#x3D;4，那么在节点数分别是20、40、80、160时，消息传播到所有节点需要的循环次数对比，在节点成倍扩大的情况下，循环次数并没有增加很多。所以，Gossip协议具备可扩展性：</p>
+<p><img src="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/image26.png" alt="image26.png"></p>
+<h4 id="失败容错"><a href="#失败容错" class="headerlink" title="失败容错"></a>失败容错</h4><p>Gossip也具备失败容错的能力，即使网络故障等一些问题，Gossip协议依然能很好的运行。因为一个节点会多次分享某个需要传播的信息，即使不能连通某个节点，其他被感染的节点也会尝试向这个节点传播信息。</p>
+<h4 id="健壮性"><a href="#健壮性" class="headerlink" title="健壮性"></a>健壮性</h4><p>Gossip协议下，没有任何扮演特殊角色的节点（比如leader等）。任何一个节点无论什么时候下线或者加入，并不会破坏整个系统的服务质量。</p>
+<p>然而，Gossip协议也有不完美的地方，例如，拜占庭问题（Byzantine）。即，如果有一个恶意传播消息的节点，Gossip协议的分布式系统就会出问题。还有就是节点会发送多次重复的同步请求。</p>
+<h3 id="Distro"><a href="#Distro" class="headerlink" title="Distro"></a>Distro</h3><ul>
+<li>Nacos 每个节点自己负责部分的写请求，解决了Gossip会重复发送的问题</li>
+<li>每个节点会把自己负责的新增数据同步给其他节点。</li>
+<li>每个节点定时发送自己负责数据的校验值到其他节点来保持数据一致性</li>
+<li>每个节点独立处理读请求，及时从本地发出响应。</li>
+<li>新加入的 Distro 节点会进行全量数据拉取</li>
+</ul>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/6e5fca5ed8e1">https://www.jianshu.com/p/6e5fca5ed8e1</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/130332285">https://zhuanlan.zhihu.com/p/130332285</a></p>
+<p><a target="_blank" rel="noopener" href="https://pdai.tech/md/algorithm/alg-domain-distribute-x-zab.html">https://pdai.tech/md/algorithm/alg-domain-distribute-x-zab.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/charlieroro/articles/12655967.html">https://www.cnblogs.com/charlieroro/articles/12655967.html</a></p>
+
+        
+      </div>
+
+         
+    </div>
+    
+     
+  </div>
+  
+    
+<nav id="article-nav">
+  <a class="article-nav-btn left  disabled "
+     >
+    <i class="fa-solid fa-angle-left"></i>
+    <p class="title-text">
+        
+    </p>
+  </a>
+  <a class="article-nav-btn right "
+    
+      href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/"
+      title="轻量级虚拟机Multipass"
+     >
+
+    <p class="title-text">
+      
+        轻量级虚拟机Multipass
+        
+    </p>
+    <i class="fa-solid fa-angle-right"></i>
+  </a>
+</nav>
+
+
+  
+</article>
+
+
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <div id="comment-card" class="comment-card">
+    <div class="main-title-bar">
+      <div class="main-title-dot"></div>
+      <div class="main-title">留言 </div>
+    </div>
+    <div id="vcomments"></div>
+  </div>
+  <script>
+      new Valine({
+          el: '#vcomments',
+          appId: "aATTmxUhzg7OkRG9GnE06Ch1-gzGzoHsz",
+          appKey: "bWpGMa0b4Bog7V2uuvlAGp60"
+      })
+  </script>
+ 
+    </div>
+    <div id="footer-wrapper">
+      <footer id="footer">
+  
+  <div id="footer-info" class="inner">
+    
+    &copy; 2023 小小黑<br>
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & Theme <a target="_blank" rel="noopener" href="https://github.com/wulongtao/hexo-theme-xplus">xplus</a>
+  </div>
+</footer>
+
+    </div>
+    <div class="back-to-top-wrapper">
+    <button id="back-to-top-btn" class="back-to-top-btn" onclick="topFunction()">
+        <span class="material-symbols-rounded">keyboard_arrow_up</span>
+    </button>
+</div>
+
+<script>
+    function topFunction() {
+        window.scroll({ top: 0, behavior: 'smooth' });
+    }
+    let btn = document.getElementById('back-to-top-btn');
+    function scrollFunction() {
+        if (document.body.scrollTop > 600 || document.documentElement.scrollTop > 600) {
+            btn.style.opacity = 1;
+        } else {
+            btn.style.opacity = 0;
+        }
+    }
+    window.onscroll = function() {
+        scrollFunction();
+    }
+</script>
+
+  </div>
+  <script src="/js/light-dark-switch.js"></script>
+</body>
+</html>
