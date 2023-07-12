@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+
+
+<html theme="dark" showBanner="true" hasBanner="desktop" > 
+<link href="/fontawesome/css/fontawesome.css" rel="stylesheet">
+<link href="/fontawesome/css/brands.css" rel="stylesheet">
+<link href="/fontawesome/css/solid.css" rel="stylesheet">
+<script src="/js/color.global.min.js" ></script>
+<script src="/js/load-settings.js" ></script>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>归档 | 小小黑的技术屋</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="如何理解 Spring Webflux 的「非阻塞」对前端是一样的，但是对后端的性能利用就不一样了，对比thread的sleep方法和webflux的delay方法，就可以知道它的非阻塞原理是什么，又是好在哪里。 反应式编程一开始是从前端和客户端开始兴起，现在大有蔓延到后端的趋势，Spring5推出的webflux就是反应式编程的产物。 webflux对比于springMVC，性能高出很多（只针对">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WebFlux学习笔记（一）">
+<meta property="og:url" content="https://wulongtao.github.io/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/index.html">
+<meta property="og:site_name" content="小小黑的技术屋">
+<meta property="og:description" content="如何理解 Spring Webflux 的「非阻塞」对前端是一样的，但是对后端的性能利用就不一样了，对比thread的sleep方法和webflux的delay方法，就可以知道它的非阻塞原理是什么，又是好在哪里。 反应式编程一开始是从前端和客户端开始兴起，现在大有蔓延到后端的趋势，Spring5推出的webflux就是反应式编程的产物。 webflux对比于springMVC，性能高出很多（只针对">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wulongtao.github.io/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/cover.png">
+<meta property="article:published_time" content="2023-07-11T23:54:33.000Z">
+<meta property="article:modified_time" content="2023-07-11T23:54:33.000Z">
+<meta property="article:author" content="xxiaohei">
+<meta property="article:tag" content="Spring">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wulongtao.github.io/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/cover.png">
+  
+    <link rel="alternate" href="/atom.xml" title="小小黑的技术屋" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/assets/favicon.ico">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  <!--自定义看板娘-->
+  <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+  <script src="/live2d-widget/autoload.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome/css/font-awesome.min.css"/>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  
+     
+<div class="widget color-picker">
+  <h3 class="widget-title">Theme Preview</h3>
+  <div id="banner-toggle-bar">
+    <label for="vehicle1">Show Banner</label><br>
+    <input type="checkbox" id="banner-checkbox" name="banner-checkbox" value="show">
+  </div>
+
+  <div id="preset-list">
+    
+      <div class="preset-btn" style="background-color: #f486aa;" data-hue="0"></div>
+    
+      <div class="preset-btn" style="background-color: #fa8978;" data-hue="30"></div>
+    
+      <div class="preset-btn" style="background-color: #ee9748;" data-hue="60"></div>
+    
+      <div class="preset-btn" style="background-color: #00cab1;" data-hue="180"></div>
+    
+      <div class="preset-btn" style="background-color: #4ab8fd;" data-hue="240"></div>
+    
+      <div class="preset-btn" style="background-color: #8ca8ff;" data-hue="270"></div>
+    
+      <div class="preset-btn" style="background-color: #bc98f9;" data-hue="300"></div>
+    
+      <div class="preset-btn" style="background-color: #df8cd8;" data-hue="330"></div>
+    
+      <div class="preset-btn" style="background-color: #ec88c2;" data-hue="345"></div>
+     
+  </div>
+  <input type="range" min="0" max="360" value="85" class="slider" id="colorSlider" step="5" style="width: 100%;">
+  <p>Hue: <span id="hueValue"></span></p>
+</div>
+
+<script>
+  let slider = document.getElementById("colorSlider");
+  let output = document.getElementById("hueValue");
+  let presetList = document.getElementById("preset-list");
+  let r = document.querySelector(':root');
+  output.innerHTML = slider.value; // Display the default slider value
+
+  function getColorNode(l, c, h) {
+    return new Color("oklch", [l, c, h]).to("srgb").toString({format: "hex"});
+  }
+  function setHue(hue) {
+    localStorage.setItem('hue', hue);
+    output.innerHTML = hue;
+    slider.value = hue;
+    let colorType = {
+        'V': 1,
+        'M': 0.5,
+        'G': 0.25
+    }
+    for (let color of colors.default) {
+        for (let [name, mul] of Object.entries(colorType)) {
+          r.style.setProperty(`--${name}${color.name}`, getColorNode(color.l, color.c * mul, hue));
+        }
+    }
+
+    for (let [theme, list] of Object.entries(colors)) {
+      if (theme == 'default')
+        continue;
+      for (let color of list) {
+        r.style.setProperty(`--${theme}-${color.name}`, getColorNode(color.l, color.c, hue));
+      }
+    }
+  }
+
+  let colors;
+  fetch("/colors.json")
+    .then((res) => {
+      return res.json();
+    })
+    .then((data) => {
+      colors = data;
+      let storedHue = localStorage.getItem('hue');
+      if (storedHue) {
+        setHue(storedHue);
+      }    
+    }) 
+
+  slider.oninput = function() {
+    output.innerHTML = this.value;
+    let hue = this.value;
+    setHue(hue);
+  }
+
+  presetList.onclick = function(event) {
+    let hue = event.target.dataset.hue;
+    if (hue) {
+      setHue(hue);
+    }
+  }
+
+  // Banner switch
+
+  function enableBanner() {
+    r.setAttribute("showBanner", "true");
+    localStorage.setItem('showBanner', "true");
+  }
+  
+  function disableBanner() {
+    r.setAttribute("showBanner", "false");
+    localStorage.setItem('showBanner', "false");
+  }
+
+  let showBannerCheck = document.querySelector("input[name=banner-checkbox]");
+  if (r.getAttribute("showBanner") == "true") {
+    showBannerCheck.checked = true;
+  }
+  showBannerCheck.addEventListener('change', function() {
+    if (this.checked) {
+      enableBanner();
+    } else {
+      disableBanner();
+    }
+  });
+</script>
+  
+  
+  
+    
+<div id="banner" class="">
+  <img src="/assets/banner.jpg" itemprop="image">
+  <div id="banner-dim"></div>
+</div>
+ 
+   
+  <div id="main-grid" class="shadow   ">
+    <div id="nav" class=""  >
+      <navbar id="navbar">
+  <nav id="title-nav">
+    <a href="/">
+      <div id="xplus-logo">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div>小小黑的技术屋 </div>
+    </a>
+  </nav>
+  <nav id="main-nav">
+    
+      <a class="main-nav-link" href="/">主页</a>
+    
+      <a class="main-nav-link" href="/archives">归档</a>
+    
+      <a class="main-nav-link" href="/about">关于</a>
+    
+  </nav>
+  <nav id="sub-nav">
+    <a id="theme-btn" class="nav-icon">
+      <span class="material-symbols-rounded light-mode-icon">wb_sunny</span>
+      <span class="material-symbols-rounded dark-mode-icon">dark_mode</span>
+    </a>
+    
+      <a id="nav-rss-link" class="nav-icon mobile-hide" href="/atom.xml" title="RSS 订阅">
+        <span class="material-symbols-rounded rss">rss_feed</span>
+      </a>
+    
+    <a id="nav-search-btn" class="nav-icon" title="搜索" style="display: none;">
+      <span class="material-symbols-rounded">search</span>
+    </a>
+    <div id="nav-menu-btn" class="nav-icon">
+      <span class="material-symbols-rounded">menu</span>
+    </div>
+  </nav>
+</navbar>
+<div id="nav-dropdown" class="hidden">
+  <div id="dropdown-link-list">
+    
+      <a class="nav-dropdown-link" href="/">主页</a>
+    
+      <a class="nav-dropdown-link" href="/archives">归档</a>
+    
+      <a class="nav-dropdown-link" href="/about">关于</a>
+    
+    
+      <a class="nav-dropdown-link" href="/atom.xml" title="RSS 订阅">RSS</a>
+     
+    </div>
+</div>
+<script>
+  let dropdownBtn = document.getElementById("nav-menu-btn");
+  let dropdownEle = document.getElementById("nav-dropdown");
+  dropdownBtn.onclick = function() {
+    dropdownEle.classList.toggle("hidden");
+  }
+</script>
+    </div>
+    <div id="sidebar-wrapper">
+      <sidebar id="sidebar">
+  
+    <div class="widget-wrap">
+  <div class="info-card">
+    <div class="avatar">
+      
+        <image src=/assets/avatar.png></image>
+      
+      <div class="img-dim"></div>
+    </div>
+    <div class="info">
+      <div class="username">小小黑 </div>
+      <div class="dot"></div>
+      <div class="subtitle">这人很懒，什么也没留下 </div>
+      <div class="link-list">
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://twitter.com" title="Twitter"><i class="fa-brands fa-twitter"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://store.steampowered.com" title="Steam"><i class="fa-brands fa-steam"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://github.com/wulongtao" title="GitHub"><i class="fa-brands fa-github"></i></a>
+         
+      </div>  
+    </div>
+  </div>
+</div>
+
+  
+  <div class="sticky">
+    
+      
+
+
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">分类</h3>
+      <div class="category-box">
+            <a class="category-link" href="/categories/Hexo/">
+                Hexo
+                <div class="category-count">2</div>
+            </a>
+        </div>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">标签</h3>
+      <ul class="widget-tag-list" itemprop="keywords"><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">归档</h3>
+      
+      
+        <a class="archive-link" href="/archives/2023/07 ">
+          七月 2023 
+          <div class="archive-count">6 </div>
+        </a>
+      
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">最新文章</h3>
+      <ul>
+        
+          <li>
+            <a href="/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/">WebFlux学习笔记（一）</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/">分布式一致性算法</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/">轻量级虚拟机Multipass</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">雪花算法存在的问题和解决方案</a>
+          </li>
+        
+          <li>
+            <a href="/articles/Hexo/Hexo%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99%EF%BC%88%E4%BA%8C%EF%BC%89/">Hexo搭建个人网站（二）</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+  </div>
+</sidebar>
+    </div>
+    <div id="content-body">
+       
+
+<article id="post-WebFlux学习笔记（一）" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  
+    
+<div class="article-gallery">
+  <div class="article-gallery-photos">
+    
+      <a class="article-gallery-img" rel="gallery_cljzuze4k0007fjoq29j5hpux">
+        <img src="/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/cover.png" itemprop="image">
+      </a>
+    
+  </div>
+</div>
+
+   
+  <div class="article-inner">
+    <div class="article-main">
+      <header class="article-header">
+        
+<div class="main-title-bar">
+  <div class="main-title-dot"></div>
+  
+    
+      <h1 class="p-name article-title" itemprop="headline name">
+        WebFlux学习笔记（一）
+      </h1>
+    
+  
+</div>
+
+        <div class='meta-info-bar'>
+          <div class="meta-info">
+  <time class="dt-published" datetime="2023-07-11T23:54:33.000Z" itemprop="datePublished">2023-07-11</time>
+</div>
+          <div class="need-seperator meta-info">
+            <div class="meta-cate-flex">
+  
+  <a class="meta-cate-link" href="/categories/Spring/">Spring</a>
+   
+</div>
+  
+          </div>
+          <div class="wordcount need-seperator meta-info">
+            2.8k 词 
+          </div>
+        </div>
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li></ul>
+
+      </header>
+      <div class="e-content article-entry" itemprop="articleBody">
+        
+          <h2 id="如何理解-Spring-Webflux-的「非阻塞」"><a href="#如何理解-Spring-Webflux-的「非阻塞」" class="headerlink" title="如何理解 Spring Webflux 的「非阻塞」"></a>如何理解 Spring Webflux 的「非阻塞」</h2><p>对前端是一样的，但是对后端的性能利用就不一样了，对比thread的sleep方法和webflux的delay方法，就可以知道它的非阻塞原理是什么，又是好在哪里。</p>
+<p>反应式编程一开始是从前端和客户端开始兴起，现在大有蔓延到后端的趋势，Spring5推出的webflux就是反应式编程的产物。</p>
+<p>webflux对比于springMVC，性能高出很多（只针对高并发的情况），网上已经有很多的测评，不再在过多说明。</p>
+<p><img src="/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/image1.jpg" alt="image1.jpg"></p>
+<p>左图同步，右图异步</p>
+<p>上图看出对比于同步，异步所用的线程是比较少的，不过有个前提是，程序逻辑中有阻塞（如io阻塞等），且这种阻塞是可以异步化的。</p>
+<p>为了满足这个前提，反应式编程框架就必须将这些阻塞变成异步化，如新出的WebClient工具就是将http请求io异步化。</p>
+<p>delay方法就是用来代替sleep方法的，下面来讲解一下delay方法是怎么将延时异步化的。</p>
+<h2 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h2><p>通过查看Mono<Long> delay(Duration duration)方法源码，它会构造一个MonoDelay类，并通过传入全局公用的调度器Schedulers.parallel()来调度里面的异步任务。</p>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">public</span> <span class="token keyword">static</span> <span class="token class-name">Mono</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">Long</span><span class="token punctuation">></span></span> <span class="token function">delay</span><span class="token punctuation">(</span><span class="token class-name">Duration</span> duration<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        <span class="token keyword">return</span> <span class="token function">delay</span><span class="token punctuation">(</span>duration<span class="token punctuation">,</span> <span class="token class-name">Schedulers</span><span class="token punctuation">.</span><span class="token function">parallel</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+
+<span class="token keyword">public</span> <span class="token keyword">static</span> <span class="token class-name">Mono</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">Long</span><span class="token punctuation">></span></span> <span class="token function">delay</span><span class="token punctuation">(</span><span class="token class-name">Duration</span> duration<span class="token punctuation">,</span> <span class="token class-name">Scheduler</span> timer<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+    <span class="token keyword">return</span> <span class="token function">onAssembly</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">MonoDelay</span><span class="token punctuation">(</span>duration<span class="token punctuation">.</span><span class="token function">toMillis</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token class-name">TimeUnit</span><span class="token punctuation">.</span><span class="token constant">MILLISECONDS</span><span class="token punctuation">,</span> timer<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>查看MonoDelay类的订阅方法subscribe：</p>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">public</span> <span class="token keyword">void</span> <span class="token function">subscribe</span><span class="token punctuation">(</span><span class="token class-name">CoreSubscriber</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token operator">?</span> <span class="token keyword">super</span> <span class="token class-name">Long</span><span class="token punctuation">></span></span> actual<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+    <span class="token class-name">MonoDelayRunnable</span> r <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">MonoDelayRunnable</span><span class="token punctuation">(</span>actual<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    actual<span class="token punctuation">.</span><span class="token function">onSubscribe</span><span class="token punctuation">(</span>r<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">try</span> <span class="token punctuation">&#123;</span>
+    <span class="token comment">//重点在于下面的 timedScheduler.schedule(r, delay, unit)</span>
+    <span class="token comment">//通过timedScheduler来调度延时任务，而不是当前线程阻塞等待</span>
+        r<span class="token punctuation">.</span><span class="token function">setCancel</span><span class="token punctuation">(</span>timedScheduler<span class="token punctuation">.</span><span class="token function">schedule</span><span class="token punctuation">(</span>r<span class="token punctuation">,</span> delay<span class="token punctuation">,</span> unit<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+    <span class="token keyword">catch</span> <span class="token punctuation">(</span><span class="token class-name">RejectedExecutionException</span> ree<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        <span class="token keyword">if</span><span class="token punctuation">(</span>r<span class="token punctuation">.</span>cancel <span class="token operator">!=</span> <span class="token class-name">OperatorDisposables</span><span class="token punctuation">.</span><span class="token constant">DISPOSED</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+            actual<span class="token punctuation">.</span><span class="token function">onError</span><span class="token punctuation">(</span><span class="token class-name">Operators</span><span class="token punctuation">.</span><span class="token function">onRejectedExecution</span><span class="token punctuation">(</span>ree<span class="token punctuation">,</span> r<span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">,</span>
+                    actual<span class="token punctuation">.</span><span class="token function">currentContext</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">&#125;</span>
+    <span class="token punctuation">&#125;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>查看ParallelScheduler的delay方法：</p>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">public</span> <span class="token class-name">Disposable</span> <span class="token function">schedule</span><span class="token punctuation">(</span><span class="token class-name">Runnable</span> task<span class="token punctuation">,</span> <span class="token keyword">long</span> delay<span class="token punctuation">,</span> <span class="token class-name">TimeUnit</span> unit<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+  <span class="token comment">//pick方法会获取一个ScheduledExecutorService线程执行器给到Schedulers使用</span>
+ <span class="token keyword">return</span> <span class="token class-name">Schedulers</span><span class="token punctuation">.</span><span class="token function">directSchedule</span><span class="token punctuation">(</span><span class="token function">pick</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> task<span class="token punctuation">,</span> delay<span class="token punctuation">,</span> unit<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>查看directSchedule方法：</p>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">static</span> <span class="token class-name">Disposable</span> <span class="token function">directSchedule</span><span class="token punctuation">(</span><span class="token class-name">ScheduledExecutorService</span> exec<span class="token punctuation">,</span>
+      <span class="token class-name">Runnable</span> task<span class="token punctuation">,</span>
+      <span class="token keyword">long</span> delay<span class="token punctuation">,</span>
+      <span class="token class-name">TimeUnit</span> unit<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+  <span class="token comment">//包装任务</span>
+   <span class="token class-name">SchedulerTask</span> sr <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">SchedulerTask</span><span class="token punctuation">(</span>task<span class="token punctuation">)</span><span class="token punctuation">;</span>
+   <span class="token class-name">Future</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token operator">?</span><span class="token punctuation">></span></span> f<span class="token punctuation">;</span>
+   <span class="token keyword">if</span> <span class="token punctuation">(</span>delay <span class="token operator">&lt;=</span> <span class="token number">0L</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+      f <span class="token operator">=</span> exec<span class="token punctuation">.</span><span class="token function">submit</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token class-name">Callable</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token operator">?</span><span class="token punctuation">></span></span><span class="token punctuation">)</span> sr<span class="token punctuation">)</span><span class="token punctuation">;</span>
+   <span class="token punctuation">&#125;</span>
+   <span class="token keyword">else</span> <span class="token punctuation">&#123;</span>
+     <span class="token comment">//延时调度</span>
+     <span class="token comment">//ScheduledExecutorService是java自带的并发调度接口，</span>
+     <span class="token comment">//通过一条线程轮询延时队列来避免所有线程阻塞</span>
+      f <span class="token operator">=</span> exec<span class="token punctuation">.</span><span class="token function">schedule</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token class-name">Callable</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token operator">?</span><span class="token punctuation">></span></span><span class="token punctuation">)</span> sr<span class="token punctuation">,</span> delay<span class="token punctuation">,</span> unit<span class="token punctuation">)</span><span class="token punctuation">;</span>
+   <span class="token punctuation">&#125;</span>
+  <span class="token comment">//设置结果</span>
+   sr<span class="token punctuation">.</span><span class="token function">setFuture</span><span class="token punctuation">(</span>f<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+   <span class="token keyword">return</span> sr<span class="token punctuation">;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>自此就可以知道为什么delay方法没有阻塞线程，因为它的延时处理都交给了ScheduledExecutorService执行器处理，调用delay方法的主线程就直接返回了，等到延时时间过后，ScheduledExecutorService就会从线程池就获取一个线程来处理延时后的任务逻辑。整个流程就类似于上面图片中的右图。</p>
+<p>通过反应式编程范式，将所有阻塞都修改为类似于delay之于sleep的形式，就能大幅度提升服务性能了。</p>
+<h2 id="举例说明"><a href="#举例说明" class="headerlink" title="举例说明"></a>举例说明</h2><p>如果执行完成需要 10s，那么用了 WebFlux 返回给前端还是 10s。</p>
+<p>WebFlux 真正的意义是，当耗时的，像访问文件或者数据库那样的处理发生时，它可以把使用的线程让渡出来，供其它请求去使用。所以它提高的是整个系统的吞吐率，而不是单个请求的执行速度。</p>
+<p>假设有个接口执行一次要10s，其中里面查询了一次mysql花6s。</p>
+<p>在传统的阻塞式，一个线程专属一个请求，所以请求花10s也就占用一个线程10s。但其实查询mysql的6s线程是在等着的，因为计算在mysql而不是java，java的线程就是瞎等。</p>
+<p>然后非阻塞解决了这个问题，当开始mysql查询时，原来的线程会被调去其他地方，然后当查询完成时框架再调用另一条线程继续，结果这个历时10s的接口只有4s用了java线程。</p>
+<p>因此最终结果就是同样数量的线程可用于更多接口调用次数。</p>
+<h2 id="背压-Back-Pressure-与流量控制"><a href="#背压-Back-Pressure-与流量控制" class="headerlink" title="背压(Back Pressure)与流量控制"></a>背压(Back Pressure)与流量控制</h2><p>春节期间，高速上动不动就堵车，这是一种“背压”的现象。背压(back pressure)，也叫“反压”，指的是下游系统处理过慢，导致上游系统阻塞的现象。我们来聊聊背压后面的流控吧。</p>
+<h3 id="流控策略"><a href="#流控策略" class="headerlink" title="流控策略"></a>流控策略</h3><p>如下图，系统中存在三方：生产者(Producer)产生数据，通过管道(Pipeline)传输给消费者(Consumer)。</p>
+<p><img src="/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/image2.png" alt="image2.png"></p>
+<p>此时生产的速率(100&#x2F;s)大于消费的速率(75&#x2F;s)，多余的流量无处可去。于是自然地衍生出三种策略：</p>
+<ol>
+<li>控制(Control)。降低生产速率，从源头减少流量</li>
+<li>缓冲(Buffer)。管道将多余的流量存储起来</li>
+<li>丢弃(Drop)。消费者将无暇处理的流量丢弃</li>
+</ol>
+<p>由于“控制”策略需要将消费者的压力反馈给生产者，从而降低生产速率，与“背压”现象很类似，因此在资料中背压也常常代指“控制”策略。</p>
+<h3 id="无限缓冲不可行"><a href="#无限缓冲不可行" class="headerlink" title="无限缓冲不可行"></a>无限缓冲不可行</h3><p>缓冲不应该是无限的(unbounded)。一方面如果生产者的速率长期大于消费者的速率，那么多余的流量将无限增加，即使流量可以用某种方式存储，这些流量预期被消费的时间也无限增加，满足不了业务需求。另一方面事实上无法实现真正的“无限”缓冲，它们最终都将受限于物理资源（内存、硬盘等），资源耗尽时，就不仅仅是流量丢失的问题了。</p>
+<p>如果是有限的缓冲，则当缓冲满了以后，又回到了背压和丢弃策略了。而丢弃可不可行通常得看业务需求，于是早晚我们又得实现背压策略。</p>
+<h3 id="如何实现背压"><a href="#如何实现背压" class="headerlink" title="如何实现背压"></a>如何实现背压</h3><p>我把它分成隐式背压（如 Callstack blocking）和显式背压（如 pull 模式）。</p>
+<p>Callstack blocking 是指阻塞整条调用链，例如提交任务到线程池，拒绝策略是阻塞，则线程池满了以后，整个线程会阻塞在提交的动作上，它隐式地阻塞了同一个线程上游的生产者。如果处理流程不在同一个线程上则难以实现，如任务在多个线程上运行或跨越多个微服务。</p>
+<p>显式背压是指在业务逻辑中显式地实现生产者和消费者间的沟通达到流量控制的目的。例如 TCP 协议中通过交换当前接收窗口的大小来完成流量控制。</p>
+<p>其中拉取(pull)模式则是比较通用且重要的一种，即任务的趋动是由消费者发起的，而不是生产者。例如 Reactive Stream 里的 API 规定是由订阅者（消费者）调用 request(n) 方法向生产者请求 n 个消息，生产者再调用 onNext() 将 n 个消息提供给消费者。消费者可以按需要获取，生产者也可以按需生产，从而实现背压。</p>
+<h3 id="无处不在的流量控制"><a href="#无处不在的流量控制" class="headerlink" title="无处不在的流量控制"></a>无处不在的流量控制</h3><p>只在系统存在不止一方，就有流量产生，就需要流量控制。</p>
+<p>TCP 是最经典的示例了，协议本身提供背压，内核会保存一个有限(bounded)大小的发送缓冲，当缓冲满的时候，会阻塞 send 方法，即 callstack blocking 实现背压。这样接收方的压力就可以传导到发送方的 send 方法了。</p>
+<p>消息队列(如 Kafka)相当于提供了一个巨大（接近无限）的缓冲，这样它的上下游之间就不需要有压力的传导了，多余的流量全在队列上。</p>
+<p>在微服务架构中，通常有一个断路器(Circuit Breaker)的角色，在某个服务压力过大或系统不可用时，不再请求而直接返回默认值，可以认为是一种丢弃策略。</p>
+<p>但有时候，我们无法控制流量的生产者，例如用户的点击等，这时缓冲和丢弃策略就显得很重要了。</p>
+<h3 id="背压与-async"><a href="#背压与-async" class="headerlink" title="背压与 async"></a>背压与 async</h3><p>最先是在学习 webflux 的时候接触背压的概念，当时还不太理解。后来看到讨论背压和 async 的文章，才认识到流控需求的普遍性和背压的重要性。</p>
+<p>近几年异步编程又火了起来：Go&#x2F;Rust 的协程、Python 的 asyncio、反应式编程 (Reactive Programming) 等。异步的作用是释放阻塞的线程，用来处理其它的任务，等阻塞的资源准备就绪后再处理。这样能提高系统的吞吐，因为等待的时间减少了。</p>
+<p>但是这相当于隐式地使用了“无限”的缓冲，用来存储处于等待状态的任务。由此带来的问题就是：队列满了（资源用完了）怎么办？或者即使队列未满但等待时间过长了怎么办？</p>
+<p>对于一些 cold 的内容[1]，一些框架通过采用 poll 模式可以尽量实现背压：如 NodeJs 里的 Stream、Rust 的 Tokio 框架、Project Reactor 及 RxJava 中的许多 operator 等等。</p>
+<p>而对于一些 hot 的内容，如 web 服务接收了过多的请求则无法有效控制。</p>
+<h3 id="背压总结"><a href="#背压总结" class="headerlink" title="背压总结"></a>背压总结</h3><p>背压虽好，难实现；缓冲无限有危险；要用丢弃得看脸。</p>
+<p>要意识到流量控制的必要性，对我自己而言，两点最佳实践：</p>
+<ol>
+<li>不要用无限的缓冲</li>
+<li>优先考虑 pull 模式</li>
+</ol>
+<h2 id="webflux背压策略"><a href="#webflux背压策略" class="headerlink" title="webflux背压策略"></a>webflux背压策略</h2><p>WebFlux 是一个响应式编程框架，它使用了反压（backpressure）策略来避免数据流中的数据被过多积累，从而导致内存溢出或性能下降的问题。WebFlux 中的反压策略基于 Reactive Streams 规范。</p>
+<p>反压策略可以通过以下方式实现：</p>
+<ol>
+<li><p>请求数据量控制（Demand Control）：WebFlux 中的 Subscriber 会在订阅 Publisher 时传递一个请求数据量的数量，也就是 request(n) 方法中的参数 n。当 Subscriber 接收到数据时，会将其数量通知给 Publisher，告诉其可以继续发送数据。这种策略被称为请求数据量控制（Demand Control），可以在一定程度上控制数据流的速度，防止数据积累。</p>
+</li>
+<li><p>缓冲策略（Buffering）：WebFlux 中的 Publisher 可以缓存一定量的数据，以便在 Subscriber 请求时能够快速地发送数据。但是，如果 Publisher 缓存的数据超过了 Subscriber 的需求量，就会出现内存泄漏的问题。因此，缓冲策略需要在合适的时候释放已经缓存的数据，避免过多的数据积累。</p>
+</li>
+<li><p>丢弃策略（Dropping）：当 Subscriber 无法及时处理 Publisher 发送的数据时，可以选择丢弃一部分数据，以防止数据积累。丢弃策略通常需要在数据丢失和数据延迟之间做出平衡，以便提供更好的性能和可靠性。</p>
+</li>
+</ol>
+<p>以上是 WebFlux 中常用的反压策略，可以根据实际应用场景进行选择和组合。通过合适的反压策略，可以确保数据流的稳定性和高效性，提高应用程序的可靠性和性能。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a target="_blank" rel="noopener" href="https://www.zhihu.com/question/315097407/answer/783683309">https://www.zhihu.com/question/315097407/answer/783683309</a></p>
+<p><a target="_blank" rel="noopener" href="https://lotabout.me/2020/Back-Pressure/">https://lotabout.me/2020/Back-Pressure/</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/s/webflux%E8%83%8C%E5%8E%8B%E7%AD%96%E7%95%A5">https://juejin.cn/s/webflux%E8%83%8C%E5%8E%8B%E7%AD%96%E7%95%A5</a></p>
+
+        
+      </div>
+
+         
+    </div>
+    
+     
+  </div>
+  
+    
+<nav id="article-nav">
+  <a class="article-nav-btn left  disabled "
+     >
+    <i class="fa-solid fa-angle-left"></i>
+    <p class="title-text">
+        
+    </p>
+  </a>
+  <a class="article-nav-btn right "
+    
+      href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/"
+      title="分布式一致性算法"
+     >
+
+    <p class="title-text">
+      
+        分布式一致性算法
+        
+    </p>
+    <i class="fa-solid fa-angle-right"></i>
+  </a>
+</nav>
+
+
+  
+</article>
+
+
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <div id="comment-card" class="comment-card">
+    <div class="main-title-bar">
+      <div class="main-title-dot"></div>
+      <div class="main-title">留言 </div>
+    </div>
+    <div id="vcomments"></div>
+  </div>
+  <script>
+      new Valine({
+          el: '#vcomments',
+          appId: "aATTmxUhzg7OkRG9GnE06Ch1-gzGzoHsz",
+          appKey: "bWpGMa0b4Bog7V2uuvlAGp60"
+      })
+  </script>
+ 
+    </div>
+    <div id="footer-wrapper">
+      <footer id="footer">
+  
+  <div id="footer-info" class="inner">
+    
+    &copy; 2023 小小黑<br>
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & Theme <a target="_blank" rel="noopener" href="https://github.com/wulongtao/hexo-theme-xplus">xplus</a>
+  </div>
+</footer>
+
+    </div>
+    <div class="back-to-top-wrapper">
+    <button id="back-to-top-btn" class="back-to-top-btn" onclick="topFunction()">
+        <span class="material-symbols-rounded">keyboard_arrow_up</span>
+    </button>
+</div>
+
+<script>
+    function topFunction() {
+        window.scroll({ top: 0, behavior: 'smooth' });
+    }
+    let btn = document.getElementById('back-to-top-btn');
+    function scrollFunction() {
+        if (document.body.scrollTop > 600 || document.documentElement.scrollTop > 600) {
+            btn.style.opacity = 1;
+        } else {
+            btn.style.opacity = 0;
+        }
+    }
+    window.onscroll = function() {
+        scrollFunction();
+    }
+</script>
+
+  </div>
+  <script src="/js/light-dark-switch.js"></script>
+</body>
+</html>
