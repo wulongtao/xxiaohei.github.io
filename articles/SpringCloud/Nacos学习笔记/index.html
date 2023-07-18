@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+
+
+<html theme="dark" showBanner="true" hasBanner="desktop" > 
+<link href="/fontawesome/css/fontawesome.css" rel="stylesheet">
+<link href="/fontawesome/css/brands.css" rel="stylesheet">
+<link href="/fontawesome/css/solid.css" rel="stylesheet">
+<script src="/js/color.global.min.js" ></script>
+<script src="/js/load-settings.js" ></script>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>归档 | 小小黑的技术屋</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="本文主要内容是我看完Nacos架构&amp;原理做的一些笔记，学习的版本是Nacos2.x。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nacos学习笔记">
+<meta property="og:url" content="https://wulongtao.github.io/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/index.html">
+<meta property="og:site_name" content="小小黑的技术屋">
+<meta property="og:description" content="本文主要内容是我看完Nacos架构&amp;原理做的一些笔记，学习的版本是Nacos2.x。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wulongtao.github.io/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/cover.png">
+<meta property="article:published_time" content="2023-07-18T20:29:44.000Z">
+<meta property="article:modified_time" content="2023-07-18T20:29:44.000Z">
+<meta property="article:author" content="xxiaohei">
+<meta property="article:tag" content="Nacos">
+<meta property="article:tag" content="SpringCloud">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wulongtao.github.io/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/cover.png">
+  
+    <link rel="alternate" href="/atom.xml" title="小小黑的技术屋" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/assets/favicon.ico">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  <!--自定义看板娘-->
+  <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+  <script src="/live2d-widget/autoload.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome/css/font-awesome.min.css"/>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  
+     
+<div class="widget color-picker">
+  <h3 class="widget-title">Theme Preview</h3>
+  <div id="banner-toggle-bar">
+    <label for="vehicle1">Show Banner</label><br>
+    <input type="checkbox" id="banner-checkbox" name="banner-checkbox" value="show">
+  </div>
+
+  <div id="preset-list">
+    
+      <div class="preset-btn" style="background-color: #f486aa;" data-hue="0"></div>
+    
+      <div class="preset-btn" style="background-color: #fa8978;" data-hue="30"></div>
+    
+      <div class="preset-btn" style="background-color: #ee9748;" data-hue="60"></div>
+    
+      <div class="preset-btn" style="background-color: #00cab1;" data-hue="180"></div>
+    
+      <div class="preset-btn" style="background-color: #4ab8fd;" data-hue="240"></div>
+    
+      <div class="preset-btn" style="background-color: #8ca8ff;" data-hue="270"></div>
+    
+      <div class="preset-btn" style="background-color: #bc98f9;" data-hue="300"></div>
+    
+      <div class="preset-btn" style="background-color: #df8cd8;" data-hue="330"></div>
+    
+      <div class="preset-btn" style="background-color: #ec88c2;" data-hue="345"></div>
+     
+  </div>
+  <input type="range" min="0" max="360" value="85" class="slider" id="colorSlider" step="5" style="width: 100%;">
+  <p>Hue: <span id="hueValue"></span></p>
+</div>
+
+<script>
+  let slider = document.getElementById("colorSlider");
+  let output = document.getElementById("hueValue");
+  let presetList = document.getElementById("preset-list");
+  let r = document.querySelector(':root');
+  output.innerHTML = slider.value; // Display the default slider value
+
+  function getColorNode(l, c, h) {
+    return new Color("oklch", [l, c, h]).to("srgb").toString({format: "hex"});
+  }
+  function setHue(hue) {
+    localStorage.setItem('hue', hue);
+    output.innerHTML = hue;
+    slider.value = hue;
+    let colorType = {
+        'V': 1,
+        'M': 0.5,
+        'G': 0.25
+    }
+    for (let color of colors.default) {
+        for (let [name, mul] of Object.entries(colorType)) {
+          r.style.setProperty(`--${name}${color.name}`, getColorNode(color.l, color.c * mul, hue));
+        }
+    }
+
+    for (let [theme, list] of Object.entries(colors)) {
+      if (theme == 'default')
+        continue;
+      for (let color of list) {
+        r.style.setProperty(`--${theme}-${color.name}`, getColorNode(color.l, color.c, hue));
+      }
+    }
+  }
+
+  let colors;
+  fetch("/colors.json")
+    .then((res) => {
+      return res.json();
+    })
+    .then((data) => {
+      colors = data;
+      let storedHue = localStorage.getItem('hue');
+      if (storedHue) {
+        setHue(storedHue);
+      }    
+    }) 
+
+  slider.oninput = function() {
+    output.innerHTML = this.value;
+    let hue = this.value;
+    setHue(hue);
+  }
+
+  presetList.onclick = function(event) {
+    let hue = event.target.dataset.hue;
+    if (hue) {
+      setHue(hue);
+    }
+  }
+
+  // Banner switch
+
+  function enableBanner() {
+    r.setAttribute("showBanner", "true");
+    localStorage.setItem('showBanner', "true");
+  }
+  
+  function disableBanner() {
+    r.setAttribute("showBanner", "false");
+    localStorage.setItem('showBanner', "false");
+  }
+
+  let showBannerCheck = document.querySelector("input[name=banner-checkbox]");
+  if (r.getAttribute("showBanner") == "true") {
+    showBannerCheck.checked = true;
+  }
+  showBannerCheck.addEventListener('change', function() {
+    if (this.checked) {
+      enableBanner();
+    } else {
+      disableBanner();
+    }
+  });
+</script>
+  
+  
+  
+    
+<div id="banner" class="">
+  <img src="/assets/banner.jpg" itemprop="image">
+  <div id="banner-dim"></div>
+</div>
+ 
+   
+  <div id="main-grid" class="shadow   ">
+    <div id="nav" class=""  >
+      <navbar id="navbar">
+  <nav id="title-nav">
+    <a href="/">
+      <div id="xplus-logo">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div>小小黑的技术屋 </div>
+    </a>
+  </nav>
+  <nav id="main-nav">
+    
+      <a class="main-nav-link" href="/">主页</a>
+    
+      <a class="main-nav-link" href="/archives">归档</a>
+    
+      <a class="main-nav-link" href="/about">关于</a>
+    
+  </nav>
+  <nav id="sub-nav">
+    <a id="theme-btn" class="nav-icon">
+      <span class="material-symbols-rounded light-mode-icon">wb_sunny</span>
+      <span class="material-symbols-rounded dark-mode-icon">dark_mode</span>
+    </a>
+    
+      <a id="nav-rss-link" class="nav-icon mobile-hide" href="/atom.xml" title="RSS 订阅">
+        <span class="material-symbols-rounded rss">rss_feed</span>
+      </a>
+    
+    <a id="nav-search-btn" class="nav-icon" title="搜索" style="display: none;">
+      <span class="material-symbols-rounded">search</span>
+    </a>
+    <div id="nav-menu-btn" class="nav-icon">
+      <span class="material-symbols-rounded">menu</span>
+    </div>
+  </nav>
+</navbar>
+<div id="nav-dropdown" class="hidden">
+  <div id="dropdown-link-list">
+    
+      <a class="nav-dropdown-link" href="/">主页</a>
+    
+      <a class="nav-dropdown-link" href="/archives">归档</a>
+    
+      <a class="nav-dropdown-link" href="/about">关于</a>
+    
+    
+      <a class="nav-dropdown-link" href="/atom.xml" title="RSS 订阅">RSS</a>
+     
+    </div>
+</div>
+<script>
+  let dropdownBtn = document.getElementById("nav-menu-btn");
+  let dropdownEle = document.getElementById("nav-dropdown");
+  dropdownBtn.onclick = function() {
+    dropdownEle.classList.toggle("hidden");
+  }
+</script>
+    </div>
+    <div id="sidebar-wrapper">
+      <sidebar id="sidebar">
+  
+    <div class="widget-wrap">
+  <div class="info-card">
+    <div class="avatar">
+      
+        <image src=/assets/avatar.png></image>
+      
+      <div class="img-dim"></div>
+    </div>
+    <div class="info">
+      <div class="username">小小黑 </div>
+      <div class="dot"></div>
+      <div class="subtitle">这人很懒，什么也没留下 </div>
+      <div class="link-list">
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://twitter.com" title="Twitter"><i class="fa-brands fa-twitter"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://store.steampowered.com" title="Steam"><i class="fa-brands fa-steam"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://github.com/wulongtao" title="GitHub"><i class="fa-brands fa-github"></i></a>
+         
+      </div>  
+    </div>
+  </div>
+</div>
+
+  
+  <div class="sticky">
+    
+      
+
+
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">分类</h3>
+      <div class="category-box">
+            <a class="category-link" href="/categories/Hexo/">
+                Hexo
+                <div class="category-count">2</div>
+            </a>
+        </div>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">标签</h3>
+      <ul class="widget-tag-list" itemprop="keywords"><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Nacos/" rel="tag">Nacos</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/SpringCloud/" rel="tag">SpringCloud</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">归档</h3>
+      
+      
+        <a class="archive-link" href="/archives/2023/07 ">
+          七月 2023 
+          <div class="archive-count">8 </div>
+        </a>
+      
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">最新文章</h3>
+      <ul>
+        
+          <li>
+            <a href="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/">Nacos源码阅读与实战</a>
+          </li>
+        
+          <li>
+            <a href="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">Nacos学习笔记</a>
+          </li>
+        
+          <li>
+            <a href="/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/">WebFlux学习笔记（一）</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/">分布式一致性算法</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/">轻量级虚拟机Multipass</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+  </div>
+</sidebar>
+    </div>
+    <div id="content-body">
+       
+
+<article id="post-Nacos学习笔记" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  
+    
+<div class="article-gallery">
+  <div class="article-gallery-photos">
+    
+      <a class="article-gallery-img" rel="gallery_clk8fnkki0009feoq9mwv5ohe">
+        <img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/cover.png" itemprop="image">
+      </a>
+    
+  </div>
+</div>
+
+   
+  <div class="article-inner">
+    <div class="article-main">
+      <header class="article-header">
+        
+<div class="main-title-bar">
+  <div class="main-title-dot"></div>
+  
+    
+      <h1 class="p-name article-title" itemprop="headline name">
+        Nacos学习笔记
+      </h1>
+    
+  
+</div>
+
+        <div class='meta-info-bar'>
+          <div class="meta-info">
+  <time class="dt-published" datetime="2023-07-18T20:29:44.000Z" itemprop="datePublished">2023-07-18</time>
+</div>
+          <div class="need-seperator meta-info">
+            <div class="meta-cate-flex">
+  
+  <a class="meta-cate-link" href="/categories/SpringCloud/">SpringCloud</a>
+   
+</div>
+  
+          </div>
+          <div class="wordcount need-seperator meta-info">
+            5.5k 词 
+          </div>
+        </div>
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Nacos/" rel="tag">Nacos</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/SpringCloud/" rel="tag">SpringCloud</a></li></ul>
+
+      </header>
+      <div class="e-content article-entry" itemprop="articleBody">
+        
+          <p>本文主要内容是我看完Nacos架构&amp;原理做的一些笔记，学习的版本是Nacos2.x。<span id="more"></span></p>
+<h1 id="Nacos服务发现模块"><a href="#Nacos服务发现模块" class="headerlink" title="Nacos服务发现模块"></a>Nacos服务发现模块</h1><h2 id="数据模型"><a href="#数据模型" class="headerlink" title="数据模型"></a>数据模型</h2><p>Nacos 在经过内部多年生产经验后提炼出的数据模型，则是⼀种服务-集群-实例的三层模型。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image1.png" alt="image1.png"></p>
+<h2 id="隔离模型"><a href="#隔离模型" class="headerlink" title="隔离模型"></a>隔离模型</h2><p>Nacos 提供了四层的数据逻辑隔离模型，用户账号对应的可能是⼀个企业或者独立的个体，这个数据⼀般情况下不会透传到服务注册中心。⼀个用户账号可以新建多个命名空间，每个命名空间对应⼀个客户端实例，这个命名空间对应的注册中心物理集群是可以根据规则进行路由的，这样可以让注册中心内部的升级和迁移对用户是无感知的，同时可以根据用户的级别，为用户提供不同服务级别的物理集群。再往下是服务分组和服务名组成的二维服务标识，可以满足接口级别的服务隔离。</p>
+<p>而服务实例（以下简称实例）是某个服务的具体提供能力的节点，⼀个实例仅从属于⼀个服务，而⼀个服务可以包含⼀个或多个实例。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image2.png" alt="image2.png"></p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image8.png" alt="image8.png"></p>
+<h3 id="定义服务"><a href="#定义服务" class="headerlink" title="定义服务"></a>定义服务</h3><p>通常推荐使用由运行环境作为命名空间、应用名作为分组和服务功能作为服务名的组合来确保该服务的天然唯⼀性，当然使用者可以忽略命名空间和分组，仅使用服务名作为服务唯⼀标示，这就需要使用者在定义服务名时额外增加自己的规则来确保在使用中能够唯⼀定位到该服务而不会发现到错误的服务上。</p>
+<h3 id="服务元数据"><a href="#服务元数据" class="headerlink" title="服务元数据"></a>服务元数据</h3><p>服务的定义只是为服务设置了⼀些基本的信息，用于描述服务以及方便快速的找到服务，而服务的元数据是进⼀步定义了 Nacos 中服务的细节属性和描述信息。主要包含：</p>
+<ul>
+<li>健康保护阈值（ProtectThreshold）：为了防止因过多实例故障，导致所有流量全部流入剩余实例，继而造成流量压力将剩余实例被压垮形成的雪崩效应。应将健康保护阈值定义为⼀个0到1之间的浮点数。当域名健康实例数占总服务实例数的比例小于该值时，无论实例是否健康，都会将这个实例返回给客户端。这样做虽然损失了⼀部分流量，但是保证了集群中剩余健康实例能正常工作。</li>
+<li>实例选择器（Selector）：用于在获取服务下的实例列表时，过滤和筛选实例。该选择器也被称为路由器，目前 Nacos 支持通过将实例的部分信息存储在外部元数据管理CMDB 中，并在发现服务时使用 CMDB 中存储的元数据标签来进行筛选的能力。</li>
+<li>拓展数据(extendData)：用于用户在注册实例时自定义扩展的元数据内容，形式为K-V 。可以在服务中拓展服务的元数据信息，方便用户实现自己的自定义逻辑。</li>
+</ul>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image9.png" alt="image9.png"></p>
+<h3 id="定义实例"><a href="#定义实例" class="headerlink" title="定义实例"></a>定义实例</h3><p>由于服务实例是具体提供服务的节点，因此 Nacos 在设计实例的定义时，主要需要存储该实例的⼀些网络相关的基础信息，主要包含以下内容：</p>
+<ul>
+<li>网络 IP 地址：该实例的 IP 地址，在 Nacos2.0 版本后支持设置为域名。 网络端口：该实例的端口信息。</li>
+<li>健康状态（Healthy）：用于表示该实例是否为健康状态，会在 Nacos 中通过健康检查的手段进行维护，具体内容将在 Nacos 健康检查机制章节中详细说明，读者目前只需要该内容的含义即可。</li>
+<li>集群（Cluster）：用于标示该实例归属于哪个逻辑集群，有关于集群的相关内容，将在后文详细说明。</li>
+<li>拓展数据(extendData)：用于用户自定义扩展的元数据内容，形式为K-V。可以在实例中拓展该实例的元数据信息，方便用户实现自己的自定义逻辑和标示该实例。</li>
+</ul>
+<h3 id="实例元数据"><a href="#实例元数据" class="headerlink" title="实例元数据"></a>实例元数据</h3><p>和服务元数据不同，实例的元数据主要作用于实例运维相关的数据信息。主要包含：</p>
+<ul>
+<li>权重（Weight）：实例级别的配置。权重为浮点数，范围为 0-10000。权重越大，分配给该实例的流量越大。</li>
+<li>上线状态（Enabled）：标记该实例是否接受流量，优先级大于权重和健康状态。用于运维人员在不变动实例本身的情况下，快速地手动将某个实例从服务中移除。</li>
+<li>拓展数据(extendData)：不同于实例定义中的拓展数据，这个拓展数据是给予运维人员在不变动实例本身的情况下，快速地修改和新增实例的扩展数据，从而达到运维实例的作用。</li>
+</ul>
+<p>在 Nacos2.0 版本中，实例数据被拆分为实例定义和实例元数据，主要是因为这两类数据其实是同⼀个实例的两种不同场景：开发运行场景及运维场景。对于上下线及权重这种属性，⼀般认为在实例已经在运行时，需要运维人员手动修改和维护的数据，而 IP，端口和集群等信息，⼀般情况下在<br>Nacos 架构&lt; 84实例启动并注册后，则不会在进行变更。将这两部分数据合并后，就能够得到实例的完整信息，也是 Nacos1.0 版本中的实例数据结构。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image10.png" alt="image10.png"></p>
+<h2 id="临时实例和持久化实例"><a href="#临时实例和持久化实例" class="headerlink" title="临时实例和持久化实例"></a>临时实例和持久化实例</h2><p>Nacos 1.0.0 介绍的另外⼀个新特性是：临时实例和持久化实例。在定义上区分临时实例和持久化实例的关键是健康检查的方式。临时实例使用客户端上报模式，而持久化实例使用服务端反向探测模式。临时实例需要能够自动摘除不健康实例，而且无需持久化存储实例，那么这种实例就适用于类 Gossip 的协议。右边的持久化实例使用服务端探测的健康检查方式，因为客户端不会上报心跳，那么自然就不能去自动摘除下线的实例。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image3.png" alt="image3.png"></p>
+<p>在大中型的公司里，这两种类型的服务往往都有。⼀些基础的组件例如数据库、缓存等，这些往往不能上报心跳，这种类型的服务在注册时，就需要作为持久化实例注册。而上层的业务服务，例如微服务或者 Dubbo 服务，服务的 Provider 端支持添加汇报心跳的逻辑，此时就可以使用动态服务的注册方式。</p>
+<p>Nacos 2.0 中继续沿用了持久化及非持久化的设定，但是有了⼀些调整。Nacos 1.0 中持久化及非持久化的属性是作为实例的⼀个元数据进行存储和识别。这导致同⼀个服务下可以同时存在持久化实例和非持久化实例。但是在实际使用中，我们发现这种模式会给运维人员带来极大的困惑和运维复杂度；与此同时，从系统架构来看，⼀个服务同时存在持久化及非持久化实例的场景也是存在⼀定矛盾的。这就导致该能力事实上并未被广泛使用。为了简化 Nacos 的服务数据模型，降低运维人员的复杂度，提升 Nacos 的易用性，在 Nacos2.0 中我们将是否持久化的数据抽象至服务级别，且不再允许⼀个服务同时存在持久化实例和非持久化实例，实例的持久化属性继承自服务的持久化属性。</p>
+<p>在 Nacos2.0 版本后，持久化属性的定义被抽象到服务中，⼀个服务只能被定义成持久化服务或非持久化服务，⼀旦定义完成，在服务生命周期结束之前，无法更改其持久化属性。持久化属性将会影响服务及实例的数据是否会被 Nacos 进行持久化存储，设置为持久化之后，实例将不会再被自动移除，需要使用者手动移除实例。</p>
+<p>考虑到目前大多数使用动态服务发现的场景为非持久化服务的类型（如 Spring Cloud，Dubbo，Service Mesh 等），Nacos 将缺醒值设置为了非持久化服务。</p>
+<h3 id="集群（cluster）"><a href="#集群（cluster）" class="headerlink" title="集群（cluster）"></a>集群（cluster）</h3><p>集群是 Nacos 中⼀组服务实例的⼀个逻辑抽象的概念，它介于服务和实例之间，是⼀部分服务属性的下沉和实例属性的抽象。</p>
+<p>在 Nacos 中，集群中主要保存了有关健康检查的⼀些信息和数据：健康检查类型、健康检查端口、是否使用实例端口进行健康检查、拓展数据。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image11.png" alt="image11.png"></p>
+<h2 id="数据一致性"><a href="#数据一致性" class="headerlink" title="数据一致性"></a>数据一致性</h2><p>Nacos 因为要支持多种服务类型的注册，并能够具有机房容灾、集群扩展等必不可少的能力，在1.0.0 正式支持 AP 和 CP 两种⼀致性协议并存。1.0.0 重构了数据的读写和同步逻辑，将与业务相关的 CRUD 与底层的⼀致性同步逻辑进行了分层隔离。然后将业务的读写（主要是写，因为读会直接使用业务层的缓存）抽象为 Nacos 定义的数据类型，调用⼀致性服务进行数据同步。在决定使用 CP 还是 AP ⼀致性时，使用⼀个代理，通过可控制的规则进行转发。</p>
+<p>目前的⼀致性协议实现，⼀个是基于简化的 Raft 的 CP ⼀致性，⼀个是基于自研协议Distro的AP ⼀致性。Raft 协议不必多言，基于 Leader 进行写入，其 CP 也并不是严格的，只是能保证⼀半所见⼀致，以及数据的丢失概率较小。Distro 协议则是参考了内部 ConfigServer 和开源Eureka，在不借助第三方存储的情况下，实现基本大同小异。Distro 重点是做了⼀些逻辑的优化和性能的调优。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image4.png" alt="image4.png"></p>
+<h2 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h2><p>负载均衡严格的来说，并不算是传统注册中心的功能。⼀般来说服务发现的完整流程应该是先从注册中心获取到服务的实例列表，然后再根据自身的需求，来选择其中的部分实例或者按照⼀定的流量分配机制来访问不同的服务提供者，因此注册中心本身⼀般不限定服务消费者的访问策略。Eureka、Zookeeper 包括 Consul，本身都没有去实现可配置及可扩展的负载均衡机制，Eureka的负载均衡是由 ribbon 来完成的，而 Consul 则是由 Fabio 做负载均衡。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image5.png" alt="image5.png"></p>
+<p>在阿里巴巴集团内部，却是使用的相反的思路。服务消费者往往并不关心所访问的服务提供者的负载均衡，它们只关心以最高效和正确的访问服务提供者的服务。而服务提供者，则非常关注自身被访问的流量的调配，这其中的第⼀个原因是，阿里巴巴集团内部服务访问流量巨大，稍有不慎就会导致流量异常压垮服务提供者的服务。因此服务提供者需要能够完全掌控服务的流量调配，并可以动态调整。</p>
+<p>服务端的负载均衡，给服务提供者更强的流量控制权，但是无法满足不同的消费者希望使用不同负载均衡策略的需求。而不同负载均衡策略的场景，确实是存在的。而客户端的负载均衡则提供了这种灵活性，并对用户扩展提供更加友好的支持。但是客户端负载均衡策略如果配置不当，可能会导致服务提供者出现热点，或者压根就拿不到任何服务提供者。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image6.png" alt="image6.png"></p>
+<p>抛开负载均衡到底是在服务提供者实现还是在服务消费者实现，我们看到目前的负载均衡有基于权重、服务提供者负载、响应时间、标签等策略。</p>
+<p>在 Nacos 0.7.0 版本中，我们除了提供基于健康检查和权重的负载均衡方式外，还新提供了基于第三方 CMDB 的标签负载均衡器，具体可以参考 CMDB 功能介绍文章。使用基于标签的负载均衡器，目前可以实现同标签优先访问的流量调度策略，实际的应用场景中，可以用来实现服务的就近访问，当您的服务部署在多个地域时，这非常有用。</p>
+<h2 id="健康检查"><a href="#健康检查" class="headerlink" title="健康检查"></a>健康检查</h2><p>Nacos 目前支持临时实例使用心跳上报方式维持活性，发送心跳的周期默认是 5 秒，Nacos 服务端会在15 秒没收到心跳后将实例设置为不健康，在 30 秒没收到心跳时将这个临时实例摘除。</p>
+<p>Nacos 提供了两种服务类型供用户注册实例时选择，分为临时实例和永久实例。</p>
+<p>临时实例只是临时存在于注册中心中，会在服务下线或不可用时被注册中心剔除，临时实例会与注册中心保持心跳，注册中心会在⼀段时间没有收到来自客户端的心跳后会将实例设置为不健康，然后在⼀段时间后进行剔除。</p>
+<p>临时实例只是临时存在于注册中心中，会在服务下线或不可用时被注册中心剔除，临时实例会与注册中心保持心跳，注册中心会在⼀段时间没有收到来自客户端的心跳后会将实例设置为不健康，然后在⼀段时间后进行剔除。</p>
+<p>永久实例在被删除之前会永久的存在于注册中心，且有可能并不知道注册中心存在，不会主动向注册中心上报心跳，那么这个时候就需要注册中心主动进行探活。</p>
+<p>从上面的介绍我们可以看出，Nacos 中两种健康探测方式均有被使用，Nacos 中监看检查的整体交互如下如所示。下面我们会详细介绍 Nacos 中对于两种实例的健康检查机制。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image7.png" alt="image7.png"></p>
+<h3 id="临时实例健康检查机制"><a href="#临时实例健康检查机制" class="headerlink" title="临时实例健康检查机制"></a>临时实例健康检查机制</h3><p>在 Nacos 中，用户可以通过两种方式进行临时实例的注册，通过 Nacos 的OpenAPI 进行服务注册或通过 Nacos 提供的 SDK 进行服务注册。</p>
+<p>OpenAPI 的注册方式实际是用户根据自身需求调用 Http 接口对服务进行注册，然后通过Http接口发送心跳到注册中心。在注册服务的同时会注册⼀个全局的客户端心跳检测的任务。在服务⼀段时间没有收到来自客户端的心跳后，该任务会将其标记为不健康，如果在间隔的时间内还未收到心跳，那么该任务会将其剔除。</p>
+<p>SDK 的注册方式实际是通过 RPC 与注册中心保持连接（Nacos 2.x 版本中，旧版的还是仍然通过OpenAPI 的方式），客户端会定时的通过 RPC 连接向 Nacos 注册中心发送心跳，保持连接的存活。如果客户端和注册中心的连接断开，那么注册中心会主动剔除该 client 所注册的服务，达到下线的效果。同时 Nacos 注册中心还会在注册中心启动时，注册⼀个过期客户端清除的定时任务，用于删除那些健康状态超过⼀段时间的客户端。</p>
+<p>从上面的特点我们可以发现，对于不同类型的使用方式，Nacos 对于健康检查的特点实际都是相同的，都是由客户端向注册中心发送心跳，注册中心会在连接断开或是心跳过期后将不健康的实例移除。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image12.png" alt="image12.png"></p>
+<h3 id="永久实例健康检查机制"><a href="#永久实例健康检查机制" class="headerlink" title="永久实例健康检查机制"></a>永久实例健康检查机制</h3><p>Nacos 中使用 SDK 对于永久实例的注册实际也是使用 OpenAPI 的方式进行注册，这样可以保证即使是客户端下线后也不会影响永久实例的健康检查。</p>
+<p>对于永久实例的的健康检查，Nacos 采用的是注册中心探测机制，注册中心会在永久服务初始化时根据客户端选择的协议类型注册探活的定时任务。Nacos 现在内置提供了三种探测的协议，即Http、TCP 以及 MySQL 。⼀般而言 Http 和 TCP 已经可以涵盖绝大多数的健康检查场景。MySQL 主要用于特殊的业务场景，例如数据库的主备需要通过服务名对外提供访问，需要确定当前访问数据库是否为主库时，那么我们此时的健康检查接口，是⼀个检查数据库是否为主库的MySQL命令。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image13.png" alt="image13.png"></p>
+<p>由于持久化服务的实例的在被主动删除前⼀直存在的特性，探活的定时任务会不断探测服务的健康状态，并且将无法探测成功的实例标记为不健康。但是有些时候会有这样的场景，有些服务不希望去校验其健康状态，Nacos 也是提供了对应的白名单配置，用户可以将服务配置到该白名单，那么Nacos 会放弃对其进行健康检查，实例的健康状态也始终为用户传入的健康状态。</p>
+<h3 id="集群模式下的健康检查机制"><a href="#集群模式下的健康检查机制" class="headerlink" title="集群模式下的健康检查机制"></a>集群模式下的健康检查机制</h3><p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image14.png" alt="image14.png"></p>
+<p>在 Nacos 中，服务的注册我们从注册方式维度实际可以分为两大类。第⼀类通过SDK RPC连接进行注册，客户端会和注册中心保持链接。第二类，通过 OpenAPI 进行 IP 和端口注册。</p>
+<p>对于第⼀类，如何寻找到对其负责的注册中心节点呢？聪明的你肯定想到了，只需要和注册中心集群中的任意⼀台节点建立联系，那么由这个节点负责这个客户端就可以了。注册中心会在启动时注册⼀个全局的同步任务，用于将其当前负责的所有节点信息同步到集群中的其他节点，其他非负责的节点也会创建该客户端的信息，在非负责的节点上，连接类型的客户端，会有⼀个续约时间的概念，在收到其他节点的同步信息时，更新续约时间为当前时间，如果在集群中的其他节点在⼀段时间内没有收到不是自己的负责的节点的同步信息，那么认为此节点已经不健康，从而达到对不是自己负责的节点健康状态检查。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image15.png" alt="image15.png"></p>
+<p>对于第二类，方式其实也基本和第⼀类⼀致，OpenAPI 注册的临时实例也是通过同步自身负责的节点到其他节点来更新其他节点的对应的临时实例的心跳时间，保证其他节点不会删除或者修改此实例的健康状态。前面我们特别指明了是临时实例而没有说所有实例，你应该也可能会想到这种方式对于持久化节点会显得多余，永久实例会在被主动删除前⼀直存在于注册中心，那么我们健康检查并不会去删除实例，所以我们只需要在负责的节点永久实例健康状态变更的时候通知到其余的节点即可。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image16.png" alt="image16.png"></p>
+<h1 id="Nacos配置管理模块"><a href="#Nacos配置管理模块" class="headerlink" title="Nacos配置管理模块"></a>Nacos配置管理模块</h1><h2 id="配置一致性模型"><a href="#配置一致性模型" class="headerlink" title="配置一致性模型"></a>配置一致性模型</h2><p>Nacos 配置管理⼀致性协议分为两个大部分，第⼀部分是 Server 间⼀致性协议，⼀个是SDK与Server 的⼀致性协议，配置作为分布式系统中非强⼀致数据，在出现脑裂的时候可用性高于⼀致性，因此阿里配置中心是采用 AP ⼀致性协议。</p>
+<h3 id="Server-间的⼀致性协议"><a href="#Server-间的⼀致性协议" class="headerlink" title="Server 间的⼀致性协议"></a>Server 间的⼀致性协议</h3><h4 id="有-DB-模式（读写分离架构）"><a href="#有-DB-模式（读写分离架构）" class="headerlink" title="有 DB 模式（读写分离架构）"></a>有 DB 模式（读写分离架构）</h4><p>⼀致性的核心是 Server 与 DB 保持数据⼀致性，从而保证 Server 数据⼀致；Server 之间都是对等的。数据写任何⼀个 Server，优先持久化，持久化成功后异步通知其他节点到数据库中拉取最新配置值，并且通知写入成功。</p>
+<p><img src="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/image17.png" alt="image17.png"></p>
+<h4 id="无-DB-模式"><a href="#无-DB-模式" class="headerlink" title="无 DB 模式"></a>无 DB 模式</h4><p>Server 间采用 Raft 协议保证数据⼀致性，行业大部分产品采用此模式，因此不展开介绍。Nacos提供此模式，是方便用户本机运行，降低对存储依赖。</p>
+<h3 id="SDK-与-Server-的⼀致性协议"><a href="#SDK-与-Server-的⼀致性协议" class="headerlink" title="SDK 与 Server 的⼀致性协议"></a>SDK 与 Server 的⼀致性协议</h3><p>SDK 与 Server ⼀致性协议的核心是通过 MD5 值是否⼀致，如果不⼀致就拉取最新值。</p>
+<h4 id="Nacos-1-X"><a href="#Nacos-1-X" class="headerlink" title="Nacos 1.X"></a>Nacos 1.X</h4><p>Nacos 1.X 采用 Http 1.1 短链接模拟长链接，每 30s 发⼀个心跳跟 Server 对比SDK配置MD5 值是否跟 Server 保持⼀致，如果⼀致就 hold 住链接，如果有不⼀致配置，就把不⼀致的配置返回，然后 SDK 获取最新配置值。</p>
+<h4 id="Nacos-2-X"><a href="#Nacos-2-X" class="headerlink" title="Nacos 2.X"></a>Nacos 2.X</h4><p>Nacos 2.x 相比上面 30s ⼀次的长轮训，升级成长链接模式，配置变更，启动建立长链接，配置变更服务端推送变更配置列表，然后 SDK 拉取配置更新，因此通信效率大幅提升。</p>
+
+        
+      </div>
+
+         
+    </div>
+    
+     
+  </div>
+  
+    
+<nav id="article-nav">
+  <a class="article-nav-btn left "
+    
+      href="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/"
+      title="Nacos源码阅读与实战"
+     >
+    <i class="fa-solid fa-angle-left"></i>
+    <p class="title-text">
+      
+        Nacos源码阅读与实战
+        
+    </p>
+  </a>
+  <a class="article-nav-btn right "
+    
+      href="/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/"
+      title="WebFlux学习笔记（一）"
+     >
+
+    <p class="title-text">
+      
+        WebFlux学习笔记（一）
+        
+    </p>
+    <i class="fa-solid fa-angle-right"></i>
+  </a>
+</nav>
+
+
+  
+</article>
+
+
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <div id="comment-card" class="comment-card">
+    <div class="main-title-bar">
+      <div class="main-title-dot"></div>
+      <div class="main-title">留言 </div>
+    </div>
+    <div id="vcomments"></div>
+  </div>
+  <script>
+      new Valine({
+          el: '#vcomments',
+          appId: "aATTmxUhzg7OkRG9GnE06Ch1-gzGzoHsz",
+          appKey: "bWpGMa0b4Bog7V2uuvlAGp60"
+      })
+  </script>
+ 
+    </div>
+    <div id="footer-wrapper">
+      <footer id="footer">
+  
+  <div id="footer-info" class="inner">
+    
+    &copy; 2023 小小黑<br>
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & Theme <a target="_blank" rel="noopener" href="https://github.com/wulongtao/hexo-theme-xplus">xplus</a>
+  </div>
+</footer>
+
+    </div>
+    <div class="back-to-top-wrapper">
+    <button id="back-to-top-btn" class="back-to-top-btn" onclick="topFunction()">
+        <span class="material-symbols-rounded">keyboard_arrow_up</span>
+    </button>
+</div>
+
+<script>
+    function topFunction() {
+        window.scroll({ top: 0, behavior: 'smooth' });
+    }
+    let btn = document.getElementById('back-to-top-btn');
+    function scrollFunction() {
+        if (document.body.scrollTop > 600 || document.documentElement.scrollTop > 600) {
+            btn.style.opacity = 1;
+        } else {
+            btn.style.opacity = 0;
+        }
+    }
+    window.onscroll = function() {
+        scrollFunction();
+    }
+</script>
+
+  </div>
+  <script src="/js/light-dark-switch.js"></script>
+</body>
+</html>

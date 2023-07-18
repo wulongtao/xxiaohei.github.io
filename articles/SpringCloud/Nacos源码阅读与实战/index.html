@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 
-<html theme="dark" showBanner="true" hasBanner="true" > 
+<html theme="dark" showBanner="true" hasBanner="desktop" > 
 <link href="/fontawesome/css/fontawesome.css" rel="stylesheet">
 <link href="/fontawesome/css/brands.css" rel="stylesheet">
 <link href="/fontawesome/css/solid.css" rel="stylesheet">
@@ -11,17 +11,23 @@
   <meta charset="utf-8">
   
   
-  <title>标签: Linux | 小小黑的技术屋</title>
+  <title>归档 | 小小黑的技术屋</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="小小黑的技术屋">
-<meta property="og:type" content="website">
-<meta property="og:title" content="小小黑的技术屋">
-<meta property="og:url" content="https://wulongtao.github.io/tags/Linux/index.html">
+  <meta name="description" content="本文主要内容是对于部分源码的理解还有在使用Nacos时遇到的一些问题汇总。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nacos源码阅读与实战">
+<meta property="og:url" content="https://wulongtao.github.io/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/index.html">
 <meta property="og:site_name" content="小小黑的技术屋">
-<meta property="og:description" content="小小黑的技术屋">
+<meta property="og:description" content="本文主要内容是对于部分源码的理解还有在使用Nacos时遇到的一些问题汇总。">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wulongtao.github.io/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/cover.png">
+<meta property="article:published_time" content="2023-07-18T22:23:59.000Z">
+<meta property="article:modified_time" content="2023-07-18T22:23:59.000Z">
 <meta property="article:author" content="xxiaohei">
+<meta property="article:tag" content="Nacos">
+<meta property="article:tag" content="SpringCloud">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wulongtao.github.io/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/cover.png">
   
     <link rel="alternate" href="/atom.xml" title="小小黑的技术屋" type="application/atom+xml">
   
@@ -342,43 +348,145 @@
     <div id="content-body">
        
 
-<div class="archive-main-card">
-    <div class="archive-top">
-      <div class="main-title-bar">
-        <div class="main-title-dot"></div>
-        <h1 class="article-title">Archive</h1>
-      </div>    
-    </div>
+<article id="post-Nacos源码阅读与实战" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  
     
+<div class="article-gallery">
+  <div class="article-gallery-photos">
     
-      
-      
-        
-        <div class="year-line">
-            <div class="year-num">2023</div>
-            <div class="dot-wrapper">
-                <div class="dot"></div>
-            </div>
-        </div>
-      
-      <a class="archive-article-link" href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/" title="轻量级虚拟机Multipass">
-        <div class="date">07-08</div>
-        <div class="line">
-            <div class="dot"></div>
-        </div>
-        <div class="title">
-            <div class="title-inner">
-                
-                    轻量级虚拟机Multipass
-                
-            </div>
-        </div>
-        <div class="tags">
-            #Linux
-        </div>
+      <a class="article-gallery-img" rel="gallery_clk8fnkkk000bfeoq4kmj8qut">
+        <img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/cover.png" itemprop="image">
       </a>
     
   </div>
+</div>
+
+   
+  <div class="article-inner">
+    <div class="article-main">
+      <header class="article-header">
+        
+<div class="main-title-bar">
+  <div class="main-title-dot"></div>
+  
+    
+      <h1 class="p-name article-title" itemprop="headline name">
+        Nacos源码阅读与实战
+      </h1>
+    
+  
+</div>
+
+        <div class='meta-info-bar'>
+          <div class="meta-info">
+  <time class="dt-published" datetime="2023-07-18T22:23:59.000Z" itemprop="datePublished">2023-07-18</time>
+</div>
+          <div class="need-seperator meta-info">
+            <div class="meta-cate-flex">
+  
+  <a class="meta-cate-link" href="/categories/SpringCloud/">SpringCloud</a>
+   
+</div>
+  
+          </div>
+          <div class="wordcount need-seperator meta-info">
+            610 词 
+          </div>
+        </div>
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Nacos/" rel="tag">Nacos</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/SpringCloud/" rel="tag">SpringCloud</a></li></ul>
+
+      </header>
+      <div class="e-content article-entry" itemprop="articleBody">
+        
+          <p>本文主要内容是对于部分源码的理解还有在使用Nacos时遇到的一些问题汇总。<span id="more"></span></p>
+<p>对于阅读源码，我的思路是先找到一些注册成功的日志，然后打断点，看整个调用链路。</p>
+<h1 id="客户端注册源码解读"><a href="#客户端注册源码解读" class="headerlink" title="客户端注册源码解读"></a>客户端注册源码解读</h1><p>在NacosServiceRegistry类的注册完成日志的代码打个断点，我们可以看到项目启动后的整个调用链路。</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image1.png" alt="image1.png"></p>
+<p>从头开始看，首先还是进到熟悉的refresh方法，在finishRefresh中做处理。</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image2.png" alt="image2.png"></p>
+<p>实际上创建完实例后，使用了spring的发布事件机制，会发布一个注册事件。</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image3.png" alt="image3.png"></p>
+<p>发布完事件后，实际上是给springcloud包（非alibaba）的AbstractAutoServiceRegistration类监听到了这个事件，然后NacosServiceRegistry又实现了ServiceRegistry，所以由Nacos接收到这个事件并注册。</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image4.png" alt="image4.png"></p>
+<p>这里可以看到，真正注册的逻辑在下面这个方法中。</p>
+<pre class="line-numbers language-none"><code class="language-none">com.alibaba.nacos.client.naming.NacosNamingService#registerInstance(java.lang.String, java.lang.String, com.alibaba.nacos.api.naming.pojo.Instance)<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>打断点进去会看到正真处理的类是NamingClientProxyDelegate，里面会先调用getExecuteClientProxy方法去选择执行注册的代理，这里比较有意思：</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image5.png" alt="image5.png"></p>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">private</span> <span class="token class-name">NamingClientProxy</span> <span class="token function">getExecuteClientProxy</span><span class="token punctuation">(</span><span class="token class-name">Instance</span> instance<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+    <span class="token keyword">return</span> instance<span class="token punctuation">.</span><span class="token function">isEphemeral</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">?</span> grpcClientProxy <span class="token operator">:</span> httpClientProxy<span class="token punctuation">;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+
+<blockquote>
+<p>这里会判断如果是临时实例，用的是GRPC；持久化实例用的是httpClient。我觉得这里原因是因为临时实例的数据同步和健康检查是由客户端发送心跳的，这里使用长连接可以节省频繁发送心跳建立链接消耗性能的问题，并且客户端连接用的是nacos提供的包所以肯定支持GRPC协议。<br>但是持久化实例不一样，他主要是使用服务端探测的健康检查方式，因为客户端不会上报心跳，所以他并不知道客户端是否支持GRPC（例如mysql就不支持），所以他只能用httpClient的方式。</p>
+</blockquote>
+<p>因为我调试时用的是临时实例，所以进到了NamingGrpcClientProxy中：</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image6.png" alt="image6.png"></p>
+<p>NamingGrpcClientProxy最终封装一个Request去注册服务实例</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image7.png" alt="image7.png"></p>
+<h1 id="Nacos部署遇到的一些问题"><a href="#Nacos部署遇到的一些问题" class="headerlink" title="Nacos部署遇到的一些问题"></a>Nacos部署遇到的一些问题</h1><h2 id="数据库链接不上的问题（No-Database-Set）"><a href="#数据库链接不上的问题（No-Database-Set）" class="headerlink" title="数据库链接不上的问题（No Database Set）"></a>数据库链接不上的问题（No Database Set）</h2><p>可以试试在配置文件中把下面的配置注释掉</p>
+<pre class="line-numbers language-none"><code class="language-none"># spring.datasource.platform&#x3D;mysql<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>然后数据库连接配置改成这样，主要加了allowPublicKeyRetrieval和换一下时区：</p>
+<pre class="line-numbers language-none"><code class="language-none">jdbc:mysql:&#x2F;&#x2F;127.0.0.1:3306&#x2F;nacos_config?characterEncoding&#x3D;utf8&amp;connectTimeout&#x3D;1000&amp;socketTimeout&#x3D;3000&amp;autoReconnect&#x3D;true&amp;useUnicode&#x3D;true&amp;useSSL&#x3D;false&amp;serverTimezone&#x3D;Asia&#x2F;Shanghai&amp;allowPublicKeyRetrieval&#x3D;true<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+
+
+
+        
+      </div>
+
+         
+    </div>
+    
+     
+  </div>
+  
+    
+<nav id="article-nav">
+  <a class="article-nav-btn left  disabled "
+     >
+    <i class="fa-solid fa-angle-left"></i>
+    <p class="title-text">
+        
+    </p>
+  </a>
+  <a class="article-nav-btn right "
+    
+      href="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"
+      title="Nacos学习笔记"
+     >
+
+    <p class="title-text">
+      
+        Nacos学习笔记
+        
+    </p>
+    <i class="fa-solid fa-angle-right"></i>
+  </a>
+</nav>
+
+
+  
+</article>
+
+
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <div id="comment-card" class="comment-card">
+    <div class="main-title-bar">
+      <div class="main-title-dot"></div>
+      <div class="main-title">留言 </div>
+    </div>
+    <div id="vcomments"></div>
+  </div>
+  <script>
+      new Valine({
+          el: '#vcomments',
+          appId: "aATTmxUhzg7OkRG9GnE06Ch1-gzGzoHsz",
+          appKey: "bWpGMa0b4Bog7V2uuvlAGp60"
+      })
+  </script>
+ 
     </div>
     <div id="footer-wrapper">
       <footer id="footer">
