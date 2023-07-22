@@ -354,7 +354,7 @@
 <div class="article-gallery">
   <div class="article-gallery-photos">
     
-      <a class="article-gallery-img" rel="gallery_clk9vq46z000bfvp0fm9ldbao">
+      <a class="article-gallery-img" rel="gallery_clkddpsbp000bh4owa8mb81qy">
         <img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/cover.png" itemprop="image">
       </a>
     
@@ -390,7 +390,7 @@
   
           </div>
           <div class="wordcount need-seperator meta-info">
-            985 词 
+            1.7k 词 
           </div>
         </div>
         
@@ -425,7 +425,73 @@
 <p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image6.png" alt="image6.png"></p>
 <p>NamingGrpcClientProxy最终封装一个Request去注册服务实例</p>
 <p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image7.png" alt="image7.png"></p>
-<h1 id="服务端源码阅读"><a href="#服务端源码阅读" class="headerlink" title="服务端源码阅读"></a>服务端源码阅读</h1><h1 id="Nacos部署遇到的一些问题"><a href="#Nacos部署遇到的一些问题" class="headerlink" title="Nacos部署遇到的一些问题"></a>Nacos部署遇到的一些问题</h1><h2 id="数据库链接不上的问题（No-Database-Set）"><a href="#数据库链接不上的问题（No-Database-Set）" class="headerlink" title="数据库链接不上的问题（No Database Set）"></a>数据库链接不上的问题（No Database Set）</h2><p>可以试试在配置文件中把下面的配置注释掉</p>
+<h1 id="服务端源码阅读"><a href="#服务端源码阅读" class="headerlink" title="服务端源码阅读"></a>服务端源码阅读</h1><h2 id="服务端处理客户端链接请求"><a href="#服务端处理客户端链接请求" class="headerlink" title="服务端处理客户端链接请求"></a>服务端处理客户端链接请求</h2><p>这里Nacos的设计思想和客户端有点像，也是通过发布订阅事件来完成的，在客户端与服务器建立连接后，客户端发送过来的请求会经过GrpcRequestAcceptor这个类的request方法。启动一个客户端时，会进入到下面这个断点（这里调试是要给断点加一个条件，否则会一直触发断点）。</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image10.png" alt="image10.png"></p>
+<p>然后我们关注下面这行代码</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image11.png" alt="image11.png"></p>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token class-name">Response</span> response <span class="token operator">=</span> requestHandler<span class="token punctuation">.</span><span class="token function">handleRequest</span><span class="token punctuation">(</span>request<span class="token punctuation">,</span> requestMeta<span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>这个代码最终会进到InstanceRequestHandler类的handle方法中，并且type是注册实例</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image12.png" alt="image12.png"></p>
+<p>注册实例的方法registerInstance进去，发现就是发布了很多个事件</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image13.png" alt="image13.png"></p>
+<p>最终在EphemeralClientOperationServiceImpl的下面代码块中，会把这个实例注册到ConcurrentHashMap里面去</p>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token class-name">InstancePublishInfo</span> instanceInfo <span class="token operator">=</span> <span class="token function">getPublishInfo</span><span class="token punctuation">(</span>instance<span class="token punctuation">)</span><span class="token punctuation">;</span>
+client<span class="token punctuation">.</span><span class="token function">addServiceInstance</span><span class="token punctuation">(</span>singleton<span class="token punctuation">,</span> instanceInfo<span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image14.png" alt="image14.png"></p>
+<p>整个事件发布和处理的模型图大致如下：</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image15.png" alt="image15.png"></p>
+<ol>
+<li>比如一个服务注册事件，调用NotifyCenter的静态方法开始发布一个事件，想要通过通知中心发布一个服务注册的消息</li>
+<li>该事件对应一些发布者，这时候会去map里面找这个事件的发布者</li>
+<li>这个事件发布者呢，他有一个阻塞队列queue，专门用来存储事件的</li>
+<li>同时这个发布者也是一个线程，作为一个发布者的同时，也是作为一个线程被保存在NotifyCenter的map里面</li>
+<li>发布者这个线程呢，会不断的从queue里面取事件</li>
+<li>发布者取出事件后，会从它内部的一个map里面找到这个事件的所有的订阅者，并判断这个订阅者是需要同步还是异步通知</li>
+</ol>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image16.png" alt="image16.png"></p>
+<h2 id="服务端处理Distro请求"><a href="#服务端处理Distro请求" class="headerlink" title="服务端处理Distro请求"></a>服务端处理Distro请求</h2><p>这里的事件处理器是DistroClientDataProcessor</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image17.png" alt="image17.png"></p>
+<p>最终也是放到延时队列做处理</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image18.png" alt="image18.png"></p>
+<h2 id="配置中心加载源码"><a href="#配置中心加载源码" class="headerlink" title="配置中心加载源码"></a>配置中心加载源码</h2><p>加载的入口在NacosConfigDataLoader类的pullConfig方法中，具体流程是通过grpc去链接，最后监听配置的改变</p>
+<p><img src="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/image19.png" alt="image19.png"></p>
+<h2 id="配置文件加载顺序源码"><a href="#配置文件加载顺序源码" class="headerlink" title="配置文件加载顺序源码"></a>配置文件加载顺序源码</h2><p>在这个类中的NacosPropertySourceLocator如下方法，从这段代码基本可以分析共享配置优先级&lt;扩展配置&lt;内部规则配置</p>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">public</span> <span class="token class-name">PropertySource</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token operator">?</span><span class="token punctuation">></span></span> <span class="token function">locate</span><span class="token punctuation">(</span><span class="token class-name">Environment</span> env<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+    nacosConfigProperties<span class="token punctuation">.</span><span class="token function">setEnvironment</span><span class="token punctuation">(</span>env<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token class-name">ConfigService</span> configService <span class="token operator">=</span> nacosConfigManager<span class="token punctuation">.</span><span class="token function">getConfigService</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token keyword">null</span> <span class="token operator">==</span> configService<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        log<span class="token punctuation">.</span><span class="token function">warn</span><span class="token punctuation">(</span><span class="token string">"no instance of config service found, can't load config from nacos"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token keyword">null</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+    <span class="token keyword">long</span> timeout <span class="token operator">=</span> nacosConfigProperties<span class="token punctuation">.</span><span class="token function">getTimeout</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    nacosPropertySourceBuilder <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">NacosPropertySourceBuilder</span><span class="token punctuation">(</span>configService<span class="token punctuation">,</span>
+            timeout<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token class-name">String</span> name <span class="token operator">=</span> nacosConfigProperties<span class="token punctuation">.</span><span class="token function">getName</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token class-name">String</span> dataIdPrefix <span class="token operator">=</span> nacosConfigProperties<span class="token punctuation">.</span><span class="token function">getPrefix</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token class-name">StringUtils</span><span class="token punctuation">.</span><span class="token function">isEmpty</span><span class="token punctuation">(</span>dataIdPrefix<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        dataIdPrefix <span class="token operator">=</span> name<span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token class-name">StringUtils</span><span class="token punctuation">.</span><span class="token function">isEmpty</span><span class="token punctuation">(</span>dataIdPrefix<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        dataIdPrefix <span class="token operator">=</span> env<span class="token punctuation">.</span><span class="token function">getProperty</span><span class="token punctuation">(</span><span class="token string">"spring.application.name"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+
+    <span class="token class-name">CompositePropertySource</span> composite <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">CompositePropertySource</span><span class="token punctuation">(</span>
+            <span class="token constant">NACOS_PROPERTY_SOURCE_NAME</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        
+    <span class="token function">loadSharedConfiguration</span><span class="token punctuation">(</span>composite<span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// 加载共享配置</span>
+    <span class="token function">loadExtConfiguration</span><span class="token punctuation">(</span>composite<span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// 加载扩展配置</span>
+    <span class="token function">loadApplicationConfiguration</span><span class="token punctuation">(</span>composite<span class="token punctuation">,</span> dataIdPrefix<span class="token punctuation">,</span> nacosConfigProperties<span class="token punctuation">,</span> env<span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// 加载内部规则配置</span>
+    <span class="token keyword">return</span> composite<span class="token punctuation">;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+
+<h1 id="Nacos部署遇到的一些问题"><a href="#Nacos部署遇到的一些问题" class="headerlink" title="Nacos部署遇到的一些问题"></a>Nacos部署遇到的一些问题</h1><h2 id="数据库链接不上的问题（No-Database-Set）"><a href="#数据库链接不上的问题（No-Database-Set）" class="headerlink" title="数据库链接不上的问题（No Database Set）"></a>数据库链接不上的问题（No Database Set）</h2><p>可以试试在配置文件中把下面的配置注释掉</p>
 <pre class="line-numbers language-none"><code class="language-none"># spring.datasource.platform&#x3D;mysql<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 <p>然后数据库连接配置改成这样，主要加了allowPublicKeyRetrieval和换一下时区：</p>
 <pre class="line-numbers language-none"><code class="language-none">jdbc:mysql:&#x2F;&#x2F;127.0.0.1:3306&#x2F;nacos_config?characterEncoding&#x3D;utf8&amp;connectTimeout&#x3D;1000&amp;socketTimeout&#x3D;3000&amp;autoReconnect&#x3D;true&amp;useUnicode&#x3D;true&amp;useSSL&#x3D;false&amp;serverTimezone&#x3D;Asia&#x2F;Shanghai&amp;allowPublicKeyRetrieval&#x3D;true<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
