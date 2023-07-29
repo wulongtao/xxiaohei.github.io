@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+
+
+<html theme="dark" showBanner="true" hasBanner="desktop" > 
+<link href="/fontawesome/css/fontawesome.css" rel="stylesheet">
+<link href="/fontawesome/css/brands.css" rel="stylesheet">
+<link href="/fontawesome/css/solid.css" rel="stylesheet">
+<script src="/js/color.global.min.js" ></script>
+<script src="/js/load-settings.js" ></script>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>归档 | 小小黑的技术屋</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="本文主要介绍了MySql死锁的一些场景、解决方案和排查思路。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySql死锁原因以及解决方案">
+<meta property="og:url" content="https://wulongtao.github.io/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/index.html">
+<meta property="og:site_name" content="小小黑的技术屋">
+<meta property="og:description" content="本文主要介绍了MySql死锁的一些场景、解决方案和排查思路。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wulongtao.github.io/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/cover.png">
+<meta property="article:published_time" content="2023-07-29T14:21:01.000Z">
+<meta property="article:modified_time" content="2023-07-29T14:21:01.000Z">
+<meta property="article:author" content="xxiaohei">
+<meta property="article:tag" content="MySql">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wulongtao.github.io/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/cover.png">
+  
+    <link rel="alternate" href="/atom.xml" title="小小黑的技术屋" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/assets/favicon.ico">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  <!--自定义看板娘-->
+  <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+  <script src="/live2d-widget/autoload.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome/css/font-awesome.min.css"/>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  
+     
+<div class="widget color-picker">
+  <h3 class="widget-title">Theme Preview</h3>
+  <div id="banner-toggle-bar">
+    <label for="vehicle1">Show Banner</label><br>
+    <input type="checkbox" id="banner-checkbox" name="banner-checkbox" value="show">
+  </div>
+
+  <div id="preset-list">
+    
+      <div class="preset-btn" style="background-color: #f486aa;" data-hue="0"></div>
+    
+      <div class="preset-btn" style="background-color: #fa8978;" data-hue="30"></div>
+    
+      <div class="preset-btn" style="background-color: #ee9748;" data-hue="60"></div>
+    
+      <div class="preset-btn" style="background-color: #00cab1;" data-hue="180"></div>
+    
+      <div class="preset-btn" style="background-color: #4ab8fd;" data-hue="240"></div>
+    
+      <div class="preset-btn" style="background-color: #8ca8ff;" data-hue="270"></div>
+    
+      <div class="preset-btn" style="background-color: #bc98f9;" data-hue="300"></div>
+    
+      <div class="preset-btn" style="background-color: #df8cd8;" data-hue="330"></div>
+    
+      <div class="preset-btn" style="background-color: #ec88c2;" data-hue="345"></div>
+     
+  </div>
+  <input type="range" min="0" max="360" value="85" class="slider" id="colorSlider" step="5" style="width: 100%;">
+  <p>Hue: <span id="hueValue"></span></p>
+</div>
+
+<script>
+  let slider = document.getElementById("colorSlider");
+  let output = document.getElementById("hueValue");
+  let presetList = document.getElementById("preset-list");
+  let r = document.querySelector(':root');
+  output.innerHTML = slider.value; // Display the default slider value
+
+  function getColorNode(l, c, h) {
+    return new Color("oklch", [l, c, h]).to("srgb").toString({format: "hex"});
+  }
+  function setHue(hue) {
+    localStorage.setItem('hue', hue);
+    output.innerHTML = hue;
+    slider.value = hue;
+    let colorType = {
+        'V': 1,
+        'M': 0.5,
+        'G': 0.25
+    }
+    for (let color of colors.default) {
+        for (let [name, mul] of Object.entries(colorType)) {
+          r.style.setProperty(`--${name}${color.name}`, getColorNode(color.l, color.c * mul, hue));
+        }
+    }
+
+    for (let [theme, list] of Object.entries(colors)) {
+      if (theme == 'default')
+        continue;
+      for (let color of list) {
+        r.style.setProperty(`--${theme}-${color.name}`, getColorNode(color.l, color.c, hue));
+      }
+    }
+  }
+
+  let colors;
+  fetch("/colors.json")
+    .then((res) => {
+      return res.json();
+    })
+    .then((data) => {
+      colors = data;
+      let storedHue = localStorage.getItem('hue');
+      if (storedHue) {
+        setHue(storedHue);
+      }    
+    }) 
+
+  slider.oninput = function() {
+    output.innerHTML = this.value;
+    let hue = this.value;
+    setHue(hue);
+  }
+
+  presetList.onclick = function(event) {
+    let hue = event.target.dataset.hue;
+    if (hue) {
+      setHue(hue);
+    }
+  }
+
+  // Banner switch
+
+  function enableBanner() {
+    r.setAttribute("showBanner", "true");
+    localStorage.setItem('showBanner', "true");
+  }
+  
+  function disableBanner() {
+    r.setAttribute("showBanner", "false");
+    localStorage.setItem('showBanner', "false");
+  }
+
+  let showBannerCheck = document.querySelector("input[name=banner-checkbox]");
+  if (r.getAttribute("showBanner") == "true") {
+    showBannerCheck.checked = true;
+  }
+  showBannerCheck.addEventListener('change', function() {
+    if (this.checked) {
+      enableBanner();
+    } else {
+      disableBanner();
+    }
+  });
+</script>
+  
+  
+  
+    
+<div id="banner" class="">
+  <img src="/assets/banner.jpg" itemprop="image">
+  <div id="banner-dim"></div>
+</div>
+ 
+   
+  <div id="main-grid" class="shadow   ">
+    <div id="nav" class=""  >
+      <navbar id="navbar">
+  <nav id="title-nav">
+    <a href="/">
+      <div id="xplus-logo">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div>小小黑的技术屋 </div>
+    </a>
+  </nav>
+  <nav id="main-nav">
+    
+      <a class="main-nav-link" href="/">主页</a>
+    
+      <a class="main-nav-link" href="/archives">归档</a>
+    
+      <a class="main-nav-link" href="/about">关于</a>
+    
+  </nav>
+  <nav id="sub-nav">
+    <a id="theme-btn" class="nav-icon">
+      <span class="material-symbols-rounded light-mode-icon">wb_sunny</span>
+      <span class="material-symbols-rounded dark-mode-icon">dark_mode</span>
+    </a>
+    
+      <a id="nav-rss-link" class="nav-icon mobile-hide" href="/atom.xml" title="RSS 订阅">
+        <span class="material-symbols-rounded rss">rss_feed</span>
+      </a>
+    
+    <a id="nav-search-btn" class="nav-icon" title="搜索" style="display: none;">
+      <span class="material-symbols-rounded">search</span>
+    </a>
+    <div id="nav-menu-btn" class="nav-icon">
+      <span class="material-symbols-rounded">menu</span>
+    </div>
+  </nav>
+</navbar>
+<div id="nav-dropdown" class="hidden">
+  <div id="dropdown-link-list">
+    
+      <a class="nav-dropdown-link" href="/">主页</a>
+    
+      <a class="nav-dropdown-link" href="/archives">归档</a>
+    
+      <a class="nav-dropdown-link" href="/about">关于</a>
+    
+    
+      <a class="nav-dropdown-link" href="/atom.xml" title="RSS 订阅">RSS</a>
+     
+    </div>
+</div>
+<script>
+  let dropdownBtn = document.getElementById("nav-menu-btn");
+  let dropdownEle = document.getElementById("nav-dropdown");
+  dropdownBtn.onclick = function() {
+    dropdownEle.classList.toggle("hidden");
+  }
+</script>
+    </div>
+    <div id="sidebar-wrapper">
+      <sidebar id="sidebar">
+  
+    <div class="widget-wrap">
+  <div class="info-card">
+    <div class="avatar">
+      
+        <image src=/assets/avatar.png></image>
+      
+      <div class="img-dim"></div>
+    </div>
+    <div class="info">
+      <div class="username">小小黑 </div>
+      <div class="dot"></div>
+      <div class="subtitle">这人很懒，什么也没留下 </div>
+      <div class="link-list">
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://twitter.com" title="Twitter"><i class="fa-brands fa-twitter"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://store.steampowered.com" title="Steam"><i class="fa-brands fa-steam"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://github.com/wulongtao" title="GitHub"><i class="fa-brands fa-github"></i></a>
+         
+      </div>  
+    </div>
+  </div>
+</div>
+
+  
+  <div class="sticky">
+    
+      
+
+
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">分类</h3>
+      <div class="category-box">
+            <a class="category-link" href="/categories/Hexo/">
+                Hexo
+                <div class="category-count">2</div>
+            </a>
+        </div>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">标签</h3>
+      <ul class="widget-tag-list" itemprop="keywords"><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/MySql/" rel="tag">MySql</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Nacos/" rel="tag">Nacos</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/SpringCloud/" rel="tag">SpringCloud</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">归档</h3>
+      
+      
+        <a class="archive-link" href="/archives/2023/07 ">
+          七月 2023 
+          <div class="archive-count">10 </div>
+        </a>
+      
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">最新文章</h3>
+      <ul>
+        
+          <li>
+            <a href="/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">MySql死锁原因以及解决方案</a>
+          </li>
+        
+          <li>
+            <a href="/articles/SpringCloud/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%A1%88/">远程调用本地接口方案</a>
+          </li>
+        
+          <li>
+            <a href="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/">Nacos源码阅读与实战</a>
+          </li>
+        
+          <li>
+            <a href="/articles/SpringCloud/Nacos%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">Nacos学习笔记</a>
+          </li>
+        
+          <li>
+            <a href="/articles/Spring/WebFlux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/">WebFlux学习笔记（一）</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+  </div>
+</sidebar>
+    </div>
+    <div id="content-body">
+       
+
+<article id="post-MySql死锁原因以及解决方案" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  
+    
+<div class="article-gallery">
+  <div class="article-gallery-photos">
+    
+      <a class="article-gallery-img" rel="gallery_clknnsk7s0007gkokcdihg8l5">
+        <img src="/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/cover.png" itemprop="image">
+      </a>
+    
+  </div>
+</div>
+
+   
+  <div class="article-inner">
+    <div class="article-main">
+      <header class="article-header">
+        
+<div class="main-title-bar">
+  <div class="main-title-dot"></div>
+  
+    
+      <h1 class="p-name article-title" itemprop="headline name">
+        MySql死锁原因以及解决方案
+      </h1>
+    
+  
+</div>
+
+        <div class='meta-info-bar'>
+          <div class="meta-info">
+  <time class="dt-published" datetime="2023-07-29T14:21:01.000Z" itemprop="datePublished">2023-07-29</time>
+</div>
+          <div class="need-seperator meta-info">
+            <div class="meta-cate-flex">
+  
+  <a class="meta-cate-link" href="/categories/MySql/">MySql</a>
+   
+</div>
+  
+          </div>
+          <div class="wordcount need-seperator meta-info">
+            1.8k 词 
+          </div>
+        </div>
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MySql/" rel="tag">MySql</a></li></ul>
+
+      </header>
+      <div class="e-content article-entry" itemprop="articleBody">
+        
+          
+    <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%AD%BB%E9%94%81%E5%9C%BA%E6%99%AF"><span class="toc-text">死锁场景</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%E4%B8%80%EF%BC%9A%E8%A1%A8%E7%BA%A7%E5%88%AB%E7%9A%84%E6%AD%BB%E9%94%81"><span class="toc-text">场景一：表级别的死锁</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%E4%BA%8C%EF%BC%9A%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F"><span class="toc-text">场景二：全表扫描</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%E4%B8%89%EF%BC%9A%E8%A1%8C%E8%AE%B0%E5%BD%95%E4%BA%92%E7%9B%B8%E6%8C%81%E6%9C%89"><span class="toc-text">场景三：行记录互相持有</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%E5%9B%9B%EF%BC%9A%E8%BE%85%E5%8A%A9%E7%B4%A2%E5%BC%95%E6%AD%BB%E9%94%81"><span class="toc-text">场景四：辅助索引死锁</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%E4%BA%94%EF%BC%9A%E6%89%B9%E9%87%8F%E6%9B%B4%E6%96%B0"><span class="toc-text">场景五：批量更新</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%E5%85%AD%EF%BC%9Ainsert%E5%AF%BC%E8%87%B4%E6%AD%BB%E9%94%81"><span class="toc-text">场景六：insert导致死锁</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%AD%BB%E9%94%81%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-text">死锁解决方案</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%AD%BB%E9%94%81%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90"><span class="toc-text">死锁日志分析</span></a></li></ol>
+    </div>
+
+          <p>本文主要介绍了MySql死锁的一些场景、解决方案和排查思路。<span id="more"></span></p>
+<h1 id="死锁场景"><a href="#死锁场景" class="headerlink" title="死锁场景"></a>死锁场景</h1><h2 id="场景一：表级别的死锁"><a href="#场景一：表级别的死锁" class="headerlink" title="场景一：表级别的死锁"></a>场景一：表级别的死锁</h2><p>产生原因：</p>
+<p>事务1 -&gt; A表 -&gt; B表<br>事务2 -&gt; B表 -&gt; A表</p>
+<h2 id="场景二：全表扫描"><a href="#场景二：全表扫描" class="headerlink" title="场景二：全表扫描"></a>场景二：全表扫描</h2><p>如果在事务中执行了一条没有索引条件的查询，引发全表扫描，把行级锁上升为全表记录锁定(等价于表级锁》，多个这样的事务执行后，就很容易产生死锁和阻塞，最终应用系统会越来越慢，发生阻塞或死锁。</p>
+<h2 id="场景三：行记录互相持有"><a href="#场景三：行记录互相持有" class="headerlink" title="场景三：行记录互相持有"></a>场景三：行记录互相持有</h2><p>产生原因：两个事务分别想拿到对方持有的锁，互相等待，于是产生死锁。</p>
+<pre class="line-numbers language-sql" data-language="sql"><code class="language-sql"><span class="token comment">-- 假设1 和 5 都存在于数据库中</span>
+<span class="token comment">-- 事务 1</span>
+<span class="token keyword">select</span> <span class="token operator">*</span> <span class="token keyword">from</span> t1 <span class="token keyword">where</span> id <span class="token operator">=</span> <span class="token number">1</span> <span class="token keyword">for</span> <span class="token keyword">update</span><span class="token punctuation">;</span>
+<span class="token keyword">select</span> <span class="token operator">*</span> <span class="token keyword">from</span> t1 <span class="token keyword">where</span> id <span class="token operator">=</span> <span class="token number">5</span> <span class="token keyword">for</span> <span class="token keyword">update</span><span class="token punctuation">;</span>
+
+<span class="token comment">-- 事务 2</span>
+<span class="token keyword">select</span> <span class="token operator">*</span> <span class="token keyword">from</span> t1 <span class="token keyword">where</span> id <span class="token operator">=</span> <span class="token number">5</span> <span class="token keyword">for</span> <span class="token keyword">update</span><span class="token punctuation">;</span>
+<span class="token keyword">select</span> <span class="token operator">*</span> <span class="token keyword">from</span> t1 <span class="token keyword">where</span> id <span class="token operator">=</span> <span class="token number">1</span> <span class="token keyword">for</span> <span class="token keyword">update</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h2 id="场景四：辅助索引死锁"><a href="#场景四：辅助索引死锁" class="headerlink" title="场景四：辅助索引死锁"></a>场景四：辅助索引死锁</h2><p>MySQL是先锁辅助索引，后锁主键索引，所以如果一个事务先根据辅助索引进行更新操作，另外一个事务是根据主键索引进行操作就会产生死锁。</p>
+<p>假设现在有一张表：</p>
+<pre class="line-numbers language-sql" data-language="sql"><code class="language-sql"><span class="token keyword">create</span> <span class="token keyword">table</span> t1
+<span class="token punctuation">(</span>
+    a <span class="token keyword">int</span> <span class="token operator">not</span> <span class="token boolean">null</span>
+        <span class="token keyword">primary</span> <span class="token keyword">key</span><span class="token punctuation">,</span>
+    b <span class="token keyword">int</span> <span class="token boolean">null</span><span class="token punctuation">,</span>
+    c <span class="token keyword">int</span> <span class="token boolean">null</span><span class="token punctuation">,</span>
+    <span class="token keyword">constraint</span> t1_b
+        <span class="token keyword">unique</span> <span class="token punctuation">(</span>b<span class="token punctuation">)</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t1 <span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">,</span> c<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t1 <span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">,</span> c<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t1 <span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">,</span> c<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">15</span><span class="token punctuation">,</span> <span class="token number">15</span><span class="token punctuation">,</span> <span class="token number">15</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t1 <span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">,</span> c<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">20</span><span class="token punctuation">,</span> <span class="token number">20</span><span class="token punctuation">,</span> <span class="token number">20</span><span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p><img src="/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/image1.png" alt="image1.png"></p>
+<p>如下事务执行就会出现死锁</p>
+<pre class="line-numbers language-sql" data-language="sql"><code class="language-sql"><span class="token comment">-- 事务1</span>
+<span class="token keyword">begin</span> <span class="token punctuation">;</span>
+<span class="token keyword">update</span> t1 <span class="token keyword">set</span> c <span class="token operator">=</span><span class="token number">11</span> <span class="token keyword">where</span>  a<span class="token operator">=</span><span class="token number">10</span><span class="token punctuation">;</span> <span class="token comment">-- 执行顺序1</span>
+<span class="token keyword">update</span> t1 <span class="token keyword">set</span> c <span class="token operator">=</span><span class="token number">11</span> <span class="token keyword">where</span>  b<span class="token operator">=</span><span class="token number">10</span><span class="token punctuation">;</span> <span class="token comment">-- 执行顺序3 死锁</span>
+
+<span class="token comment">-- 事务2</span>
+<span class="token keyword">begin</span> <span class="token punctuation">;</span>
+<span class="token keyword">begin</span> <span class="token punctuation">;</span>
+<span class="token keyword">update</span> t1 <span class="token keyword">set</span> c <span class="token operator">=</span><span class="token number">11</span> <span class="token keyword">where</span>  b<span class="token operator">=</span><span class="token number">10</span><span class="token punctuation">;</span> <span class="token comment">-- 执行顺序2</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h2 id="场景五：批量更新"><a href="#场景五：批量更新" class="headerlink" title="场景五：批量更新"></a>场景五：批量更新</h2><p>每个事务只有一个SQL,但是有些情况还是会发生死锁（发生在批量更新的情况下）</p>
+<ol>
+<li>事务1,从name索引出发，读到的[hdc,11，[hdc,6]均满足条件,不仅会加name索引上的记录X锁,而且会加聚簇索引上的记录X锁,加锁顺序为先[1,hdc,1001,后[6,hdc,10]</li>
+<li>事务2，从pubtime索引出发，[10,61,10011均满足过滤条件，同样也会加聚族索引上的记录X锁，加锁顺序为[6,hdc,101，后11,hdc,1001。</li>
+<li>但是加锁时发现跟事务1的加锁顺序正好相反，两个Session恰好都持有了第一把锁，请求加第二把锁，死锁就发生了。</li>
+</ol>
+<p><img src="/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/image2.png" alt="image2.png"></p>
+<h2 id="场景六：insert导致死锁"><a href="#场景六：insert导致死锁" class="headerlink" title="场景六：insert导致死锁"></a>场景六：insert导致死锁</h2><p>在执行insert语句时，会先尝试获取间隙锁，如果可以获取，则执行成功；如果发现间隙锁被其他事务占用，则会先加一个插入意向锁，并等待其他事务释放间隙锁才可以继续执行。所以死锁发生在两个事务同时拥有同一个间隙锁（因为在非插入语句中，间隙锁时可以共存的），然后执行了插入。</p>
+<p>例如下面的场景：删除语句锁了共同的间隙，间隙锁是可以共存的。但是到插入的时候就需要等待间隙锁释放</p>
+<pre class="line-numbers language-sql" data-language="sql"><code class="language-sql"><span class="token comment">-- auto-generated definition</span>
+<span class="token keyword">create</span> <span class="token keyword">table</span> t
+<span class="token punctuation">(</span>
+    id <span class="token keyword">int</span> <span class="token operator">not</span> <span class="token boolean">null</span>
+        <span class="token keyword">primary</span> <span class="token keyword">key</span><span class="token punctuation">,</span>
+    c  <span class="token keyword">int</span> <span class="token boolean">null</span><span class="token punctuation">,</span>
+    d  <span class="token keyword">int</span> <span class="token boolean">null</span>
+<span class="token punctuation">)</span>
+    <span class="token keyword">engine</span> <span class="token operator">=</span> <span class="token keyword">InnoDB</span><span class="token punctuation">;</span>
+
+<span class="token keyword">create</span> <span class="token keyword">index</span> c
+    <span class="token keyword">on</span> t <span class="token punctuation">(</span>c<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t <span class="token punctuation">(</span>id<span class="token punctuation">,</span> c<span class="token punctuation">,</span> d<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t <span class="token punctuation">(</span>id<span class="token punctuation">,</span> c<span class="token punctuation">,</span> d<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t <span class="token punctuation">(</span>id<span class="token punctuation">,</span> c<span class="token punctuation">,</span> d<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t <span class="token punctuation">(</span>id<span class="token punctuation">,</span> c<span class="token punctuation">,</span> d<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">15</span><span class="token punctuation">,</span> <span class="token number">15</span><span class="token punctuation">,</span> <span class="token number">15</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t <span class="token punctuation">(</span>id<span class="token punctuation">,</span> c<span class="token punctuation">,</span> d<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">20</span><span class="token punctuation">,</span> <span class="token number">20</span><span class="token punctuation">,</span> <span class="token number">20</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">INSERT</span> <span class="token keyword">INTO</span> t <span class="token punctuation">(</span>id<span class="token punctuation">,</span> c<span class="token punctuation">,</span> d<span class="token punctuation">)</span> <span class="token keyword">VALUES</span> <span class="token punctuation">(</span><span class="token number">25</span><span class="token punctuation">,</span> <span class="token number">25</span><span class="token punctuation">,</span> <span class="token number">25</span><span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<pre class="line-numbers language-sql" data-language="sql"><code class="language-sql"><span class="token keyword">begin</span> <span class="token punctuation">;</span> <span class="token comment">-- 事务一</span>
+<span class="token keyword">delete</span> <span class="token keyword">from</span> t <span class="token keyword">where</span> c<span class="token operator">=</span><span class="token number">10</span><span class="token punctuation">;</span> <span class="token comment">-- 锁住(5,10] (10,15) 执行顺序：1</span>
+<span class="token keyword">insert</span> <span class="token keyword">into</span> t <span class="token keyword">values</span><span class="token punctuation">(</span><span class="token number">12</span><span class="token punctuation">,</span><span class="token number">12</span><span class="token punctuation">,</span><span class="token number">11</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">-- 等待 事务二释放(10,15)间隙锁 执行顺序3</span>
+
+
+<span class="token keyword">begin</span> <span class="token punctuation">;</span> <span class="token comment">-- 事务二</span>
+<span class="token keyword">delete</span> <span class="token keyword">from</span> t <span class="token keyword">where</span> c<span class="token operator">=</span><span class="token number">15</span><span class="token punctuation">;</span> <span class="token comment">-- 锁住 (10,15] (15,20) 执行顺序：2</span>
+<span class="token keyword">insert</span> <span class="token keyword">into</span> t <span class="token keyword">values</span><span class="token punctuation">(</span><span class="token number">13</span><span class="token punctuation">,</span><span class="token number">12</span><span class="token punctuation">,</span><span class="token number">14</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">-- 等待事务一释放(10,15)间隙锁 执行顺序4</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<h1 id="死锁解决方案"><a href="#死锁解决方案" class="headerlink" title="死锁解决方案"></a>死锁解决方案</h1><ol>
+<li>SQL语句中不要使用太复杂的关联多表的查询:使用explain“执行计划”对SQL语句进行分析，对于有全表扫描和全表锁定的SQL语句，建立相应的索引进行优化。</li>
+<li>在对事务进行删除或者更新操作时，要使用主键进行操作。</li>
+<li>必要时在事务执行前加一个锁，防止资源相互占用的情况。</li>
+</ol>
+<h1 id="死锁日志分析"><a href="#死锁日志分析" class="headerlink" title="死锁日志分析"></a>死锁日志分析</h1><p>出现死锁后，执行show engine innodb status命令得到的部分输出。这个命令会输出很多信息，有一节LATESTDETECTED DEADLOCK，就是记录的最后一次死锁信息。</p>
+<p><img src="/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/image3.png" alt="image3.png"></p>
+<p>我们来看看这图中的几个关键信息。</p>
+<p>这个结果分成三部分：</p>
+<p>(1) TRANSACTION，是第一个事务的信息；</p>
+<p>(2) TRANSACTION，是第二个事务的信息；</p>
+<p>WE ROLL BACK TRANSACTION (1)，是最终的处理结果，表示回滚了第一个事务。</p>
+<p>第一个事务的信息中：</p>
+<ul>
+<li>WAITING FOR THIS LOCK TO BE GRANTED，表示的是这个事务在等待的锁信息；</li>
+<li>index c of table <code>test</code>.<code>t</code>，说明在等的是表t的索引c上面的锁；</li>
+<li>lock mode S waiting 表示这个语句要自己加一个读锁，当前的状态是等待中；</li>
+<li>Record lock说明这是一个记录锁；</li>
+<li>n_fields 2表示这个记录是两列，也就是字段c和主键字段id；</li>
+<li>0: len 4; hex 0000000a; asc ;;是第一个字段，也就是c。值是十六进制a，也就是10；</li>
+<li>1: len 4; hex 0000000a; asc ;;是第二个字段，也就是主键id，值也是10；</li>
+<li>这两行里面的asc表示的是，接下来要打印出值里面的“可打印字符”，但10不是可打印字符，因此就显示空格。</li>
+<li>第一个事务信息就只显示出了等锁的状态，在等待(c&#x3D;10,id&#x3D;10)这一行的锁。</li>
+<li>当然你是知道的，既然出现死锁了，就表示这个事务也占有别的锁，但是没有显示出来。别着急，我们从第二个事务的信息中推导出来。</li>
+</ul>
+<p>第二个事务显示的信息要多一些：</p>
+<ul>
+<li>“ HOLDS THE LOCK(S)”用来显示这个事务持有哪些锁；</li>
+<li>index c of table <code>test</code>.<code>t</code> 表示锁是在表t的索引c上；</li>
+<li>hex 0000000a和hex 00000014表示这个事务持有c&#x3D;10和c&#x3D;20这两个记录锁；</li>
+<li>WAITING FOR THIS LOCK TO BE GRANTED，表示在等(c&#x3D;5,id&#x3D;5)这个记录锁。</li>
+</ul>
+<p>从上面这些信息中，我们就知道：</p>
+<ol>
+<li>“lock in share mode”的这条语句，持有c&#x3D;5的记录锁，在等c&#x3D;10的锁；</li>
+<li>“for update”这个语句，持有c&#x3D;20和c&#x3D;10的记录锁，在等c&#x3D;5的记录锁。</li>
+</ol>
+<p>因此导致了死锁。这里，我们可以得到两个结论：</p>
+<ol>
+<li>由于锁是一个个加的，要避免死锁，对同一组资源，要按照尽量相同的顺序访问；</li>
+<li>在发生死锁的时刻，for update 这条语句占有的资源更多，回滚成本更大，所以InnoDB选择了回滚成本更小的lock in share mode语句，来回滚。</li>
+</ol>
+
+        
+      </div>
+
+         
+    </div>
+    
+     
+  </div>
+  
+    
+<nav id="article-nav">
+  <a class="article-nav-btn left  disabled "
+     >
+    <i class="fa-solid fa-angle-left"></i>
+    <p class="title-text">
+        
+    </p>
+  </a>
+  <a class="article-nav-btn right "
+    
+      href="/articles/SpringCloud/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%A1%88/"
+      title="远程调用本地接口方案"
+     >
+
+    <p class="title-text">
+      
+        远程调用本地接口方案
+        
+    </p>
+    <i class="fa-solid fa-angle-right"></i>
+  </a>
+</nav>
+
+
+  
+</article>
+
+
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <div id="comment-card" class="comment-card">
+    <div class="main-title-bar">
+      <div class="main-title-dot"></div>
+      <div class="main-title">留言 </div>
+    </div>
+    <div id="vcomments"></div>
+  </div>
+  <script>
+      new Valine({
+          el: '#vcomments',
+          appId: "aATTmxUhzg7OkRG9GnE06Ch1-gzGzoHsz",
+          appKey: "bWpGMa0b4Bog7V2uuvlAGp60"
+      })
+  </script>
+ 
+    </div>
+    <div id="footer-wrapper">
+      <footer id="footer">
+  
+  <div id="footer-info" class="inner">
+    
+    &copy; 2023 小小黑<br>
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & Theme <a target="_blank" rel="noopener" href="https://github.com/wulongtao/hexo-theme-xplus">xplus</a>
+  </div>
+</footer>
+
+    </div>
+    <div class="back-to-top-wrapper">
+    <button id="back-to-top-btn" class="back-to-top-btn" onclick="topFunction()">
+        <span class="material-symbols-rounded">keyboard_arrow_up</span>
+    </button>
+</div>
+
+<script>
+    function topFunction() {
+        window.scroll({ top: 0, behavior: 'smooth' });
+    }
+    let btn = document.getElementById('back-to-top-btn');
+    function scrollFunction() {
+        if (document.body.scrollTop > 600 || document.documentElement.scrollTop > 600) {
+            btn.style.opacity = 1;
+        } else {
+            btn.style.opacity = 0;
+        }
+    }
+    window.onscroll = function() {
+        scrollFunction();
+    }
+</script>
+
+  </div>
+  <script src="/js/light-dark-switch.js"></script>
+</body>
+</html>
