@@ -353,7 +353,7 @@
 <div class="article-gallery">
   <div class="article-gallery-photos">
     
-      <a class="article-gallery-img" rel="gallery_clknnsk83000igkok6a8wgks7">
+      <a class="article-gallery-img" rel="gallery_clkno445n000igrou6rq8awtc">
         <img src="/articles/SpringCloud/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%A1%88/cover.png" itemprop="image">
       </a>
     
@@ -389,7 +389,7 @@
   
           </div>
           <div class="wordcount need-seperator meta-info">
-            1.1k 词 
+            1.2k 词 
           </div>
         </div>
         
@@ -404,8 +404,13 @@
     </div>
 
           <p>在微服务实际开发中，可能你只是负责一个模块的开发，然后前端需要连接开发环境去和你本地调用，这时就需要实现开发环境的网关（gateway）要调用到我们本地的服务中，我们本地只需要启动实际开发的项目即可。<span id="more"></span></p>
-<h1 id="最终结果"><a href="#最终结果" class="headerlink" title="最终结果"></a>最终结果</h1><p>如果一个前端人员要同时和两个后端人员对接，我们要实现前端只需要通过在浏览器修改一些header信息，然后通过这些header信息gateway服务可以判断需要调用服务中的哪个具体的实例，我们用的环境是SpringCloudAlibaba+Nacos+Gateway，中间可能不同的service直接还有feign的调用。</p>
+<h1 id="最终结果"><a href="#最终结果" class="headerlink" title="最终结果"></a>最终结果</h1><ol>
+<li>如果一个前端人员要同时和两个后端人员对接，我们要实现前端只需要通过在浏览器修改一些header信息，然后通过这些header信息gateway服务可以判断需要调用服务中的哪个具体的实例，我们用的环境是SpringCloudAlibaba+Nacos+Gateway，中间可能不同的service直接还有feign的调用。</li>
+</ol>
 <p><img src="/articles/SpringCloud/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%A1%88/image1.png" alt="image1.png"></p>
+<ol start="2">
+<li>后端人员进行单元测试时，本地服务如果需要使用feign调用到开发环境的其他微服务，也可以通过使用ApiFox这些工具加上header然后调用</li>
+</ol>
 <h1 id="实现思路"><a href="#实现思路" class="headerlink" title="实现思路"></a>实现思路</h1><h2 id="Nacos自定义负载均衡"><a href="#Nacos自定义负载均衡" class="headerlink" title="Nacos自定义负载均衡"></a>Nacos自定义负载均衡</h2><h3 id="Nacos自定义负载均衡具体实现"><a href="#Nacos自定义负载均衡具体实现" class="headerlink" title="Nacos自定义负载均衡具体实现"></a>Nacos自定义负载均衡具体实现</h3><p>Nacos的负载均衡策略，是根据客户端的<code>NacosLoadBalancer</code>类去实现负载均衡的，我们可以通过继承<code>NacosLoadBalancer</code>类去自定义我们自己的负载均衡策略，通过前端传过来的header和本地启动服务时配置的元数据信息做匹配，找到对应的服务实例进行调用。</p>
 <p>首先我们复制<code>NacosLoadBalancer</code>的代码，然后自定义一个负载均衡器<code>LocalNacosLoadBalancer</code>继承<code>NacosLoadBalancer</code>，在类中主要修改<code>choose</code>和<code>getInstanceResponse</code>两个方法。</p>
 <p><img src="/articles/SpringCloud/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%A1%88/image2.png" alt="image2.png"></p>
