@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+
+
+<html theme="dark" showBanner="true" hasBanner="desktop" > 
+<link href="/fontawesome/css/fontawesome.css" rel="stylesheet">
+<link href="/fontawesome/css/brands.css" rel="stylesheet">
+<link href="/fontawesome/css/solid.css" rel="stylesheet">
+<script src="/js/color.global.min.js" ></script>
+<script src="/js/load-settings.js" ></script>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>归档 | 小黑屋</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="KRaft模式是新版本Kafka中推出的集群模式，这种模式下就完全不需要Zookeeper了！">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka3.4.1集群环境搭建">
+<meta property="og:url" content="https://wulongtao.github.io/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/index.html">
+<meta property="og:site_name" content="小黑屋">
+<meta property="og:description" content="KRaft模式是新版本Kafka中推出的集群模式，这种模式下就完全不需要Zookeeper了！">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wulongtao.github.io/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/cover.png">
+<meta property="article:published_time" content="2023-08-27T14:15:25.000Z">
+<meta property="article:modified_time" content="2023-08-27T14:15:25.000Z">
+<meta property="article:author" content="xxiaohei">
+<meta property="article:tag" content="中间件">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wulongtao.github.io/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/cover.png">
+  
+    <link rel="alternate" href="/atom.xml" title="小黑屋" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/assets/favicon.ico">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  <!--自定义看板娘-->
+  <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+  <script src="/live2d-widget/autoload.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome/css/font-awesome.min.css"/>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  
+     
+<div class="widget color-picker">
+  <h3 class="widget-title">Theme Preview</h3>
+  <div id="banner-toggle-bar">
+    <label for="vehicle1">Show Banner</label><br>
+    <input type="checkbox" id="banner-checkbox" name="banner-checkbox" value="show">
+  </div>
+
+  <div id="preset-list">
+    
+      <div class="preset-btn" style="background-color: #f486aa;" data-hue="0"></div>
+    
+      <div class="preset-btn" style="background-color: #fa8978;" data-hue="30"></div>
+    
+      <div class="preset-btn" style="background-color: #ee9748;" data-hue="60"></div>
+    
+      <div class="preset-btn" style="background-color: #00cab1;" data-hue="180"></div>
+    
+      <div class="preset-btn" style="background-color: #4ab8fd;" data-hue="240"></div>
+    
+      <div class="preset-btn" style="background-color: #8ca8ff;" data-hue="270"></div>
+    
+      <div class="preset-btn" style="background-color: #bc98f9;" data-hue="300"></div>
+    
+      <div class="preset-btn" style="background-color: #df8cd8;" data-hue="330"></div>
+    
+      <div class="preset-btn" style="background-color: #ec88c2;" data-hue="345"></div>
+     
+  </div>
+  <input type="range" min="0" max="360" value="85" class="slider" id="colorSlider" step="5" style="width: 100%;">
+  <p>Hue: <span id="hueValue"></span></p>
+</div>
+
+<script>
+  let slider = document.getElementById("colorSlider");
+  let output = document.getElementById("hueValue");
+  let presetList = document.getElementById("preset-list");
+  let r = document.querySelector(':root');
+  output.innerHTML = slider.value; // Display the default slider value
+
+  function getColorNode(l, c, h) {
+    return new Color("oklch", [l, c, h]).to("srgb").toString({format: "hex"});
+  }
+  function setHue(hue) {
+    localStorage.setItem('hue', hue);
+    output.innerHTML = hue;
+    slider.value = hue;
+    let colorType = {
+        'V': 1,
+        'M': 0.5,
+        'G': 0.25
+    }
+    for (let color of colors.default) {
+        for (let [name, mul] of Object.entries(colorType)) {
+          r.style.setProperty(`--${name}${color.name}`, getColorNode(color.l, color.c * mul, hue));
+        }
+    }
+
+    for (let [theme, list] of Object.entries(colors)) {
+      if (theme == 'default')
+        continue;
+      for (let color of list) {
+        r.style.setProperty(`--${theme}-${color.name}`, getColorNode(color.l, color.c, hue));
+      }
+    }
+  }
+
+  let colors;
+  fetch("/colors.json")
+    .then((res) => {
+      return res.json();
+    })
+    .then((data) => {
+      colors = data;
+      let storedHue = localStorage.getItem('hue');
+      if (storedHue) {
+        setHue(storedHue);
+      }    
+    }) 
+
+  slider.oninput = function() {
+    output.innerHTML = this.value;
+    let hue = this.value;
+    setHue(hue);
+  }
+
+  presetList.onclick = function(event) {
+    let hue = event.target.dataset.hue;
+    if (hue) {
+      setHue(hue);
+    }
+  }
+
+  // Banner switch
+
+  function enableBanner() {
+    r.setAttribute("showBanner", "true");
+    localStorage.setItem('showBanner', "true");
+  }
+  
+  function disableBanner() {
+    r.setAttribute("showBanner", "false");
+    localStorage.setItem('showBanner', "false");
+  }
+
+  let showBannerCheck = document.querySelector("input[name=banner-checkbox]");
+  if (r.getAttribute("showBanner") == "true") {
+    showBannerCheck.checked = true;
+  }
+  showBannerCheck.addEventListener('change', function() {
+    if (this.checked) {
+      enableBanner();
+    } else {
+      disableBanner();
+    }
+  });
+</script>
+  
+  
+  
+    
+<div id="banner" class="">
+  <img src="/assets/banner.jpg" itemprop="image">
+  <div id="banner-dim"></div>
+</div>
+ 
+   
+  <div id="main-grid" class="shadow   ">
+    <div id="nav" class=""  >
+      <navbar id="navbar">
+  <nav id="title-nav">
+    <a href="/">
+      <div id="xplus-logo">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div>小黑屋 </div>
+    </a>
+  </nav>
+  <nav id="main-nav">
+    
+      <a class="main-nav-link" href="/">主页</a>
+    
+      <a class="main-nav-link" href="/archives">归档</a>
+    
+      <a class="main-nav-link" href="/about">关于</a>
+    
+  </nav>
+  <nav id="sub-nav">
+    <a id="theme-btn" class="nav-icon">
+      <span class="material-symbols-rounded light-mode-icon">wb_sunny</span>
+      <span class="material-symbols-rounded dark-mode-icon">dark_mode</span>
+    </a>
+    
+      <a id="nav-rss-link" class="nav-icon mobile-hide" href="/atom.xml" title="RSS 订阅">
+        <span class="material-symbols-rounded rss">rss_feed</span>
+      </a>
+    
+    <a id="nav-search-btn" class="nav-icon" title="搜索" style="display: none;">
+      <span class="material-symbols-rounded">search</span>
+    </a>
+    <div id="nav-menu-btn" class="nav-icon">
+      <span class="material-symbols-rounded">menu</span>
+    </div>
+  </nav>
+</navbar>
+<div id="nav-dropdown" class="hidden">
+  <div id="dropdown-link-list">
+    
+      <a class="nav-dropdown-link" href="/">主页</a>
+    
+      <a class="nav-dropdown-link" href="/archives">归档</a>
+    
+      <a class="nav-dropdown-link" href="/about">关于</a>
+    
+    
+      <a class="nav-dropdown-link" href="/atom.xml" title="RSS 订阅">RSS</a>
+     
+    </div>
+</div>
+<script>
+  let dropdownBtn = document.getElementById("nav-menu-btn");
+  let dropdownEle = document.getElementById("nav-dropdown");
+  dropdownBtn.onclick = function() {
+    dropdownEle.classList.toggle("hidden");
+  }
+</script>
+    </div>
+    <div id="sidebar-wrapper">
+      <sidebar id="sidebar">
+  
+    <div class="widget-wrap">
+  <div class="info-card">
+    <div class="avatar">
+      
+        <image src=/assets/avatar.png></image>
+      
+      <div class="img-dim"></div>
+    </div>
+    <div class="info">
+      <div class="username">小小黑 </div>
+      <div class="dot"></div>
+      <div class="subtitle">这人很懒，什么也没留下 </div>
+      <div class="link-list">
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://twitter.com" title="Twitter"><i class="fa-brands fa-twitter"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://store.steampowered.com" title="Steam"><i class="fa-brands fa-steam"></i></a>
+        
+          <a class="link-btn" target="_blank" rel="noopener" href="https://github.com/wulongtao" title="GitHub"><i class="fa-brands fa-github"></i></a>
+         
+      </div>  
+    </div>
+  </div>
+</div>
+
+  
+  <div class="sticky">
+    
+      
+
+
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">分类</h3>
+      <div class="category-box">
+            <a class="category-link" href="/categories/Hexo/">
+                Hexo
+                <div class="category-count">2</div>
+            </a>
+        
+            <a class="category-link" href="/categories/MySql/">
+                MySql
+                <div class="category-count">2</div>
+            </a>
+        
+            <a class="category-link" href="/categories/Spring/">
+                Spring
+                <div class="category-count">1</div>
+            </a>
+        
+            <a class="category-link" href="/categories/SpringCloud/">
+                SpringCloud
+                <div class="category-count">3</div>
+            </a>
+        
+            <a class="category-link" href="/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/">
+                中间件
+                <div class="category-count">1</div>
+            </a>
+        
+            <a class="category-link" href="/categories/%E5%B0%8F%E7%9F%A5%E8%AF%86/">
+                小知识
+                <div class="category-count">3</div>
+            </a>
+        
+            <a class="category-link" href="/categories/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/">
+                实用工具
+                <div class="category-count">1</div>
+            </a>
+        </div>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">标签</h3>
+      <ul class="widget-tag-list" itemprop="keywords"><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/MySql/" rel="tag">MySql</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Nacos/" rel="tag">Nacos</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/SpringCloud/" rel="tag">SpringCloud</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" rel="tag">中间件</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">归档</h3>
+      
+      
+        <a class="archive-link" href="/archives/2023/08 ">
+          八月 2023 
+          <div class="archive-count">2 </div>
+        </a>
+      
+        <a class="archive-link" href="/archives/2023/07 ">
+          七月 2023 
+          <div class="archive-count">11 </div>
+        </a>
+      
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget-wrap">
+    <div class="widget">
+      <h3 class="widget-title">最新文章</h3>
+      <ul>
+        
+          <li>
+            <a href="/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">Kafka3.4.1集群环境搭建</a>
+          </li>
+        
+          <li>
+            <a href="/articles/MySql/mysql%E5%88%86%E7%BB%84%E5%B0%86%E8%BF%9E%E7%BB%AD%E7%9A%84%E6%97%B6%E9%97%B4%E6%AE%B5%E5%90%88%E5%B9%B6%E6%88%90%E4%B8%80%E6%9D%A1%E6%95%B0%E6%8D%AE/">mysql分组将连续的时间段合并成一条数据</a>
+          </li>
+        
+          <li>
+            <a href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7%E5%92%8C%E7%BD%91%E7%AB%99/">实用工具和网站</a>
+          </li>
+        
+          <li>
+            <a href="/articles/MySql/MySql%E6%AD%BB%E9%94%81%E5%8E%9F%E5%9B%A0%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">MySql死锁原因以及解决方案</a>
+          </li>
+        
+          <li>
+            <a href="/articles/SpringCloud/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%A1%88/">远程调用本地接口方案</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+  </div>
+</sidebar>
+    </div>
+    <div id="content-body">
+       
+
+<article id="post-Kafka3-4-1集群环境搭建" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  
+    
+<div class="article-gallery">
+  <div class="article-gallery-photos">
+    
+      <a class="article-gallery-img" rel="gallery_cllte1x6q000ogaom3lvca9lu">
+        <img src="/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/cover.png" itemprop="image">
+      </a>
+    
+  </div>
+</div>
+
+   
+  <div class="article-inner">
+    <div class="article-main">
+      <header class="article-header">
+        
+<div class="main-title-bar">
+  <div class="main-title-dot"></div>
+  
+    
+      <h1 class="p-name article-title" itemprop="headline name">
+        Kafka3.4.1集群环境搭建
+      </h1>
+    
+  
+</div>
+
+        <div class='meta-info-bar'>
+          <div class="meta-info">
+  <time class="dt-published" datetime="2023-08-27T14:15:25.000Z" itemprop="datePublished">2023-08-27</time>
+</div>
+          <div class="need-seperator meta-info">
+            <div class="meta-cate-flex">
+  
+  <a class="meta-cate-link" href="/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/">中间件</a>
+   
+</div>
+  
+          </div>
+          <div class="wordcount need-seperator meta-info">
+            4.2k 词 
+          </div>
+        </div>
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" rel="tag">中间件</a></li></ul>
+
+      </header>
+      <div class="e-content article-entry" itemprop="articleBody">
+        
+          
+    <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Kraft%E6%A8%A1%E5%BC%8F%E4%BB%8B%E7%BB%8D"><span class="toc-text">Kraft模式介绍</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%83%A8%E7%BD%B2Kafka%E9%9B%86%E7%BE%A4"><span class="toc-text">部署Kafka集群</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%EF%BC%881%EF%BC%89%E5%87%86%E5%A4%87"><span class="toc-text">（1）准备</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EF%BC%882%EF%BC%89%E4%BF%AE%E6%94%B9%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="toc-text">（2）修改配置文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EF%BC%883%EF%BC%89%E7%94%9F%E6%88%90%E9%9B%86%E7%BE%A4ID%E5%B9%B6%E4%BD%BF%E7%94%A8%E9%9B%86%E7%BE%A4ID%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%95%B0%E6%8D%AE%E7%9B%AE%E5%BD%95"><span class="toc-text">（3）生成集群ID并使用集群ID格式化数据目录</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EF%BC%884%EF%BC%89%E5%90%AF%E5%8A%A8Kafka"><span class="toc-text">（4）启动Kafka</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EF%BC%885%EF%BC%89%E6%96%B0%E5%BB%BAtopic%E6%B5%8B%E8%AF%95"><span class="toc-text">（5）新建topic测试</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8D%95%E6%9C%BA%E7%89%88%E9%85%8D%E7%BD%AE"><span class="toc-text">单机版配置</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8Kafka%E8%84%9A%E6%9C%AC"><span class="toc-text">启动Kafka脚本</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90"><span class="toc-text">配置文件解析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#node-id"><span class="toc-text">node.id</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#controller-quorum-voters"><span class="toc-text">controller.quorum.voters</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#listeners"><span class="toc-text">listeners</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#advertised-listeners"><span class="toc-text">advertised.listeners</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#process-roles"><span class="toc-text">process.roles</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#log-dirs"><span class="toc-text">log.dirs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E9%85%8D%E7%BD%AE"><span class="toc-text">其他配置</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3"><span class="toc-text">参考文档</span></a></li></ol>
+    </div>
+
+          <p>KRaft模式是新版本Kafka中推出的集群模式，这种模式下就完全不需要Zookeeper了！<span id="more"></span></p>
+<h1 id="Kraft模式介绍"><a href="#Kraft模式介绍" class="headerlink" title="Kraft模式介绍"></a>Kraft模式介绍</h1><p>在传统方案中，Kafka需要依赖Zookeeper完成元数据存放和共享，这样也就暴露出了一些问题：</p>
+<ul>
+<li>搭建Kafka集群时还需要额外搭建Zookeeper，增加了运维成本</li>
+<li>Zookeeper是强一致性的组件（符合CP理论），如果集群中数据发生变化，那么必须要等到其它节点都同步，至少超过一半同步完成，这样节点数多性能差</li>
+</ul>
+<p>那么KRaft模式是新版本Kafka中推出的集群模式，这种模式下就完全不需要Zookeeper了！只需要数个Kafka节点就可以直接构成集群，在这时集群中的Kafka节点既有可能是Controller节点也可能是Broker节点，在这个模式中，我们不仅可以手动配置某个节点的角色（是Controller还是Broker），还可以使其同时担任Broker和Controller角色（混合节点）。</p>
+<p>在KRaft模式中，集群的节点会通过投票选举的方式，选择出一个主要的Controller节点，这个节点也称作领导者，它将负责维护整个集群的元数据和状态信息，那么其它的Controller节点或者混合节点就称之为追随者，它们会从领导者同步集群元数据和状态信息。如果领导者宕机了，所有的节点会重新投票选举一个新的领导者。</p>
+<p>在选举过程中，所有的节点都会参与投票过程，而候选节点只会是Controller节点或者混合节点（即Broker节点不会被选举为领导者）。</p>
+<p>需要注意的是，在默认情况下Kafka集群中的Broker节点和Controller节点通常会监听不同的端口：</p>
+<ul>
+<li>Broker节点是Kafka集群中的数据节点（消息队列），它们负责接收客户端的消息和传递消息给客户端，默认情况下，每个Broker节点会监听9092端口，该端口用于与客户端进行通信，客户端可以将消息发送到这个端口，或者从这个端口接收消息，这个端口可以称作客户端通信端口</li>
+<li>Controller节点是Kafka集群中的控制器节点，负责管理集群的状态和元数据，Controller节点监听的端口通常是9093，该端口用于集群中其他节点获取元数据或在混合节点选举新的Controller时进行通信，通过该端口，其他节点可以与Controller节点交互，获取集群的元数据信息或参与控制器的选举过程，这个端口可以称作控制器端口</li>
+<li>混合节点（即同时担任Broker和Controller角色的节点）中，这两个端口都会被使用，默认情况下混合节点将监听9092端口接收和传递消息给客户端，并监听9093端口用于与其他节点进行元数据交换和控制器选举通信，可见混合节点会同时使用两个端口分别作为客户端通信端口与控制器端口</li>
+</ul>
+<p>所以需要根据实际情况配置网络设置和防火墙规则，以确保Kafka集群中的节点能够在正确的端口上进行通信。上述提到的两种端口也是可以修改的，当然不建议修改。</p>
+<p>同样地，就算是你只是搭建了一个Kafka节点，这一个节点也仍然被视为一个Kafka集群，并且KRaft模式下如果只需要建立一个节点，那么这个节点必须是混合节点。</p>
+<p>使用Kraft的好处有以下几个：</p>
+<ul>
+<li>Kafka 不再依赖外部框架，而是能够独立运行；</li>
+<li>controller 管理集群时，不再需要从 zookeeper 中先读取数据，集群性能上升；</li>
+<li>由于不依赖 zookeeper，集群扩展时不再受到 zookeeper 读写能力限制；</li>
+<li>controller 不再动态选举，而是由配置文件规定。这样我们可以有针对性的加强</li>
+</ul>
+<p><img src="/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/image1.png" alt="image1.png"></p>
+<h1 id="部署Kafka集群"><a href="#部署Kafka集群" class="headerlink" title="部署Kafka集群"></a>部署Kafka集群</h1><p>下面部署一个Kafka集群，使用三台机器，分别部署一台机器包含一个controller节点和一个broker节点。每个节点有单独的配置文件。</p>
+<h2 id="（1）准备"><a href="#（1）准备" class="headerlink" title="（1）准备"></a>（1）准备</h2><p>确保服务器上安装了JDK8+的环境，我这里用的是JDK8，后续更新JDK17也一样的。</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">root@ubuntu-software:/xxiaohei/middleware<span class="token comment"># java -version</span>
+<span class="token function">java</span> version <span class="token string">"1.8.0_381"</span>
+Java<span class="token punctuation">(</span>TM<span class="token punctuation">)</span> SE Runtime Environment <span class="token punctuation">(</span>build <span class="token number">1.8</span>.0_381-b09<span class="token punctuation">)</span>
+Java HotSpot<span class="token punctuation">(</span>TM<span class="token punctuation">)</span> <span class="token number">64</span>-Bit Server VM <span class="token punctuation">(</span>build <span class="token number">25.381</span>-b09, mixed mode<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>下载kafka</p>
+<p><a target="_blank" rel="noopener" href="https://downloads.apache.org/kafka/3.4.1/kafka_2.13-3.4.1.tgz">https://downloads.apache.org/kafka/3.4.1/kafka_2.13-3.4.1.tgz</a></p>
+<p>解压</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">tar</span> <span class="token parameter variable">-zxf</span> kafka_2.13-3.4.1.tgz<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h2 id="（2）修改配置文件"><a href="#（2）修改配置文件" class="headerlink" title="（2）修改配置文件"></a>（2）修改配置文件</h2><p>三台机器都做如下的配置，node.id需要改一下，目前controller用的是1-9，broker用的id从11开始</p>
+<p>创建两个目录存储节点日志</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">mkdir</span> controller_data_log
+<span class="token function">mkdir</span> broker_data_log<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<p>修改&#x2F;config&#x2F;kraft&#x2F;controller.properties文件</p>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token comment"># 三台机器分别配置id=1，2，3</span>
+<span class="token key attr-name">node.id</span><span class="token punctuation">=</span><span class="token value attr-value">1</span>
+<span class="token comment"># 投票者列表</span>
+<span class="token key attr-name">controller.quorum.voters</span><span class="token punctuation">=</span><span class="token value attr-value">1@机器1的ip:9093,2@机器2的ip:9093,3@机器3的ip:9093</span>
+<span class="token comment"># broker和controller绑定的端口</span>
+<span class="token key attr-name">listeners</span><span class="token punctuation">=</span><span class="token value attr-value">CONTROLLER://:9093</span>
+<span class="token comment"># 指定这个节点为broker,controller</span>
+<span class="token key attr-name">process.roles</span><span class="token punctuation">=</span><span class="token value attr-value">controller</span>
+<span class="token comment"># 存储数据的日志目录，目录需要提前创建好</span>
+<span class="token key attr-name">log.dirs</span><span class="token punctuation">=</span><span class="token value attr-value">/xxiaohei/middleware/kafka_2.13-3.4.1/controller_data_log</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>修改&#x2F;config&#x2F;kraft&#x2F;broker.properties文件</p>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token comment"># 三台机器分别配置id=11，12，13</span>
+<span class="token key attr-name">node.id</span><span class="token punctuation">=</span><span class="token value attr-value">10</span>
+<span class="token comment"># 投票者列表 1@172.31.64.201:9093,2@172.31.66.229:9093,3@172.31.73.26:9093</span>
+<span class="token key attr-name">controller.quorum.voters</span><span class="token punctuation">=</span><span class="token value attr-value">1@机器1的ip:9093,2@机器2的ip:9093,3@机器3的ip:9093</span>
+
+<span class="token comment"># broker和controller绑定的端口</span>
+<span class="token key attr-name">listeners</span><span class="token punctuation">=</span><span class="token value attr-value">PLAINTEXT://:9092</span>
+<span class="token comment"># broker对外暴露的端口，生产环境要替换成对应微服务可访问的的ip</span>
+<span class="token key attr-name">advertised.listeners</span><span class="token punctuation">=</span><span class="token value attr-value">PLAINTEXT://localhost:9092</span>
+<span class="token comment"># 指定这个节点为broker,controller</span>
+<span class="token key attr-name">process.roles</span><span class="token punctuation">=</span><span class="token value attr-value">broker</span>
+<span class="token comment"># 存储数据的日志目录，目录需要提前创建好</span>
+<span class="token key attr-name">log.dirs</span><span class="token punctuation">=</span><span class="token value attr-value">/xxiaohei/middleware/kafka_2.13-3.4.1/broker_data_log</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<h2 id="（3）生成集群ID并使用集群ID格式化数据目录"><a href="#（3）生成集群ID并使用集群ID格式化数据目录" class="headerlink" title="（3）生成集群ID并使用集群ID格式化数据目录"></a>（3）生成集群ID并使用集群ID格式化数据目录</h2><p>在KRaft模式下，一个集群需要设定一个id，我们可以使用自带的命令生成，先进入上述任意一台虚拟机并使用终端进入Kafka目录中，执行下列命令生成一个UUID：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-storage.sh random-uuid <span class="token comment"># 0oH1WC3DRR-GhqqdgCkmKg</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>我们这里记录下这个ID以备用。</p>
+<blockquote>
+<p>这个集群ID事实上是一个长度16位的字符串通过Base64编码后得来的，因此你也可以不使用上述命令，直接自定义一个16位长度的纯英文和数字组成的字符串，然后将这个字符串编码为Base64格式作为这个集群ID也可以。可以使用菜鸟工具中的在线Base64编码工具。</p>
+</blockquote>
+<p>然后在上述三台虚拟机中，都使用终端进入Kafka目录后，执行下列命令：</p>
+<blockquote>
+<p>使用生成的集群 ID+配置文件格式化存储目录log.dirs,所以这一步确认配置及路径确实存在，并且 kafka 用户有访问权限（检查准备工作是否做对）。每一台主机服务器都要执行这个命令</p>
+</blockquote>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-storage.sh <span class="token function">format</span> <span class="token parameter variable">-t</span> 0oH1WC3DRR-GhqqdgCkmKg <span class="token parameter variable">-c</span> config/kraft/controller.properties
+bin/kafka-storage.sh <span class="token function">format</span> <span class="token parameter variable">-t</span> 0oH1WC3DRR-GhqqdgCkmKg <span class="token parameter variable">-c</span> config/kraft/broker.properties<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<p>格式化操作完成之后，你会发现在我们定义的log.dirs目录下多出一个 meta.properties 文件。meta.properties 文件中存储了当前的 kafka 节点的 id(node.id)，当前节点属于哪个集群（cluster.id）</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment">#</span>
+<span class="token comment">#Sun Aug 27 16:50:30 AWST 2023</span>
+<span class="token assign-left variable">cluster.id</span><span class="token operator">=</span>gIzWPxQwQeu0gFMEPX7O8g
+<span class="token assign-left variable">version</span><span class="token operator">=</span><span class="token number">1</span>
+<span class="token assign-left variable">node.id</span><span class="token operator">=</span><span class="token number">1</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h2 id="（4）启动Kafka"><a href="#（4）启动Kafka" class="headerlink" title="（4）启动Kafka"></a>（4）启动Kafka</h2><p>先启动controller</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-server-start.sh <span class="token parameter variable">-daemon</span> config/kraft/controller.properties<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>后启动broker</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-server-start.sh <span class="token parameter variable">-daemon</span> config/kraft/broker.properties<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>启动命令也可以动态修改配置信息</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-server-start.sh config/server.properties <span class="token parameter variable">--override</span> <span class="token assign-left variable">controller.quorum.voters</span><span class="token operator">=</span><span class="token number">1</span>@localhost:9093,2@localhost:10093,3@localhost:11093 <span class="token parameter variable">--override</span> <span class="token assign-left variable">node.id</span><span class="token operator">=</span><span class="token number">1</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h2 id="（5）新建topic测试"><a href="#（5）新建topic测试" class="headerlink" title="（5）新建topic测试"></a>（5）新建topic测试</h2><p>现在第一台服务器的Kafka目录下执行下列命令</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-topics.sh <span class="token parameter variable">--create</span> <span class="token parameter variable">--topic</span> my-topic-kraft --bootstrap-server localhost:9092<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>然后在第二太服务器的Kafka目录下查看topic：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-topics.sh <span class="token parameter variable">--list</span> --bootstrap-server localhost:9092<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>消费者</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 <span class="token parameter variable">--topic</span> my-topic-kraft<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>生产者</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-console-producer.sh --broker-list localhost:9092 <span class="token parameter variable">--topic</span> my-topic-kraft<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h1 id="单机版配置"><a href="#单机版配置" class="headerlink" title="单机版配置"></a>单机版配置</h1><p>如果是开发环境配置单机版，可以只改config&#x2F;kraft&#x2F;server.properties文件，然后节点同时作为controller和broker。可以把server.properties复制三份，然后修改下面的配置，日志目录只需要三个即可：</p>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token comment"># 三台机器分别配置id=1，2，3</span>
+<span class="token key attr-name">node.id</span><span class="token punctuation">=</span><span class="token value attr-value">1</span>
+<span class="token comment"># 投票者列表</span>
+<span class="token key attr-name">controller.quorum.voters</span><span class="token punctuation">=</span><span class="token value attr-value">1@localhost:10093,2@localhost:10093,3@localhost:11093</span>
+<span class="token comment"># broker和controller绑定的端口</span>
+<span class="token key attr-name">listeners</span><span class="token punctuation">=</span><span class="token value attr-value">PLAINTEXT://:9092,CONTROLLER://:9093</span>
+<span class="token comment"># broker对外暴露的端口，生产环境要替换成对应微服务可访问的的ip</span>
+<span class="token key attr-name">advertised.listeners</span><span class="token punctuation">=</span><span class="token value attr-value">PLAINTEXT://localhost:9092</span>
+<span class="token comment"># 指定这个节点为broker,controller</span>
+<span class="token key attr-name">process.roles</span><span class="token punctuation">=</span><span class="token value attr-value">broker,controller</span>
+<span class="token comment"># 存储数据的日志目录，目录需要提前创建好</span>
+<span class="token key attr-name">log.dirs</span><span class="token punctuation">=</span><span class="token value attr-value">/xxiaohei/middleware/kafka_2.13-3.4.1/kafka1_data_log</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h4 id="启动Kafka脚本"><a href="#启动Kafka脚本" class="headerlink" title="启动Kafka脚本"></a>启动Kafka脚本</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">bin/kafka-server-start.sh config/kraft/node_1server.properties
+bin/kafka-server-start.sh config/kraft/node_2server.properties
+bin/kafka-server-start.sh config/kraft/node_3server.properties<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+
+<h1 id="配置文件解析"><a href="#配置文件解析" class="headerlink" title="配置文件解析"></a>配置文件解析</h1><h2 id="node-id"><a href="#node-id" class="headerlink" title="node.id"></a>node.id</h2><p>表示这个节点的id，一个集群中每个节点id不能重复，需要是不小于1的整数，这里三台虚拟机的配置分别为1，2和3（类似上述Zookeeper的broker.id配置）</p>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token comment"># 三台机器分别配置id=1，2，3</span>
+<span class="token key attr-name">node.id</span><span class="token punctuation">=</span><span class="token value attr-value">1</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<h2 id="controller-quorum-voters"><a href="#controller-quorum-voters" class="headerlink" title="controller.quorum.voters"></a>controller.quorum.voters</h2><p>该配置项用于配置集群中Controller节点选举过程中的投票者，集群中所有的Controller节点都需要被罗列在这个配置项中，其配置格式为id1@host1:port1,id2@host2:port2,id3@host3:port3…。</p>
+<p>有的同学可能认为这里需要把集群中所有节点都写进去，事实上这是错误的，这里只需要写所有的Controller节点和混合节点的id、地址和端口即可，这个配置中配置的端口当然是控制器端口。</p>
+<p>事实上，所有的节点都是通过这个配置中的节点列表，来得知所有的控制器节点信息（以获取集群元数据）并得到投票候选者的，因此集群中所有节点，不论是Broker还是Controller，还是混合节点，都需要配置这一项。</p>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token key attr-name">controller.quorum.voters</span><span class="token punctuation">=</span><span class="token value attr-value">1@localhost:9093,2@localhost:10093,3@localhost:11093</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h2 id="listeners"><a href="#listeners" class="headerlink" title="listeners"></a>listeners</h2><p>这个配置项用于指定Kafka服务器监听客户端连接的地址和端口，当 Kafka 服务器启动时，它将监听listeners配置项中指定的地址和端口，等待客户端的连接请求。</p>
+<p>一般情况下这个配置以PLAINTEXT:&#x2F;&#x2F;或者CONTROLLER:&#x2F;&#x2F;开头，意义如下：</p>
+<ul>
+<li>若这个节点是Broker节点，则以PLAINTEXT:&#x2F;&#x2F;开头</li>
+<li>若这个节点是Controller节点，则以CONTROLLER:&#x2F;&#x2F;开头</li>
+<li>若这个节点是混合节点，则需要同时配置两者开头的地址</li>
+</ul>
+<p>这个配置项通常不需要修改，下面给出几个配置示例：</p>
+<ul>
+<li>PLAINTEXT:&#x2F;&#x2F;:9092 本节点作为Broker节点，监听本机所有可用网卡的9092端口（使用9092端口作为客户端通信端口），也是默认配置</li>
+<li>PLAINTEXT:&#x2F;&#x2F;127.0.0.1:9092 本节点作为Broker节点，监听本地的9092端口，这样仅接受来自本地的请求</li>
+<li>CONTROLLER:&#x2F;&#x2F;:10000 本节点作为Controller节点，监听本机所有可用网卡的10000端口（使用10000端口作为控制器端口）</li>
+<li>PLAINTEXT:&#x2F;&#x2F;:9092,CONTROLLER:&#x2F;&#x2F;:9093 本节点作为混合节点，监听本机所有可用网卡的9092和9093端口，其中9092作为客户端通信端口，9093作为控制器端口</li>
+</ul>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token key attr-name">listeners</span><span class="token punctuation">=</span><span class="token value attr-value">PLAINTEXT://:9092,CONTROLLER://:9093</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h2 id="advertised-listeners"><a href="#advertised-listeners" class="headerlink" title="advertised.listeners"></a>advertised.listeners</h2><p>这个配置容易和listeners混淆，事实上它们是有较大的区别的。</p>
+<p>该配置项指定Kafka服务器<em>广播给客户端的地址和端口</em>，通常配置为<em>Kafka所在服务器的外网地址</em>。</p>
+<p>当客户端（生产者或消费者）尝试连接到Kafka服务器时，它首先会获取Kafka服务器广播的地址和端口，也就是advertise.listeners配置所指定的地址和端口，然后才会使用advertise.listeners配置所指定的地址和端口来建立与Kafka服务器的连接。</p>
+<p>相信这时大家会有个疑问：既然客户端要连接Kafka（例如Spring Boot集成Kafka客户端），那一定是已经知道了Kafka对外的地址端口了，那为什么连接的时候还需要获取一下广播的地址端口再进行连接呢？这样是不是有一些多此一举？</p>
+<p>事实上，Kafka设计这个配置是为了解决下面较为复杂的网络场景：</p>
+<ul>
+<li>多网络接口的主机部署：在一个多网络接口的主机部署Kafka时，Kafka服务器可能会监听多个地址和端口，这些地址和端口可能与客户端实际访问的地址和端口不同，advertise.listeners允许服务器指定一个公开的、可访问的地址和端口，以便客户端能够正确连接</li>
+<li>NAT&#x2F;代理环境：在某些网络环境下，Kafka服务器位于一个私有网络中，客户端位于一个公共网络中，两者之间可能存在网络地址转换（NAT）或代理，在这种情况下，Kafka服务器的内部地址和端口对客户端来说是不可访问的。通过使用advertise.listeners，Kafka服务器可以将一个公共地址和端口广播给客户端，使得客户端能够通过公共网络连接到服务器</li>
+<li>容器环境：例如你把Kafka放在Docker容器中运行，按照默认配置，Kafka服务端只会监听容器网络的9092端口，我们知道外部不能直接访问容器的网络，而是需要使用网络映射，假设你把Kafka容器的9092端口映射至了宿主机9095端口，也就是说外部需要通过9095端口访问到Kafka容器的9092端口，那么你就配置advertise.listeners为PLAINTEXT:&#x2F;&#x2F;服务器外网地址:9095，客户端就可以正确访问容器中的Kafka了</li>
+</ul>
+<p>总之，这个配置设置为Kafka服务器所在的外网地址即可！例如PLAINTEXT:&#x2F;&#x2F;69.54.112.239:9092。</p>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token key attr-name">advertised.listeners</span><span class="token punctuation">=</span><span class="token value attr-value">PLAINTEXT://localhost:9092</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h2 id="process-roles"><a href="#process-roles" class="headerlink" title="process.roles"></a>process.roles</h2><p>这是KRaft模式下专门的配置，用于配置这个节点的类型，可以配置为下列值：</p>
+<ul>
+<li>broker 表示这个节点是Broker节点，充当消息队列的角色</li>
+<li>controller 表示这个节点是Controller节点，充当元数据存放和管理的角色</li>
+<li>broker,controller 表示这个节点同时担任Broker和Controller的角色，也称作混合节点</li>
+</ul>
+<p>如果没有配置这个选项，则Kafka会以Zookeeper模式运行。</p>
+<p>这里有下列注意事项：</p>
+<p><em>如果设定节点为controller</em></p>
+<ul>
+<li>不能配置advertised.listeners，可以将其注释掉或者删掉</li>
+<li>listeners需要配置为CONTROLLER:&#x2F;&#x2F;开头，建议配置为CONTROLLER:&#x2F;&#x2F;:9093<br>如果设定节点为broker</li>
+</ul>
+<p><em>如果设定节点为broker</em></p>
+<ul>
+<li>则需要配置advertised.listeners为服务器外网地址和端口，这和Zookeeper模式中相同</li>
+<li>listeners需要配置为PLAINTEXT:&#x2F;&#x2F;开头，建议配置为PLAINTEXT:&#x2F;&#x2F;:9092</li>
+</ul>
+<p><em>如果设定节点为混合节点</em></p>
+<ul>
+<li>同样需要配置advertised.listeners为服务器外网地址和端口</li>
+<li>listeners需要同时配置CONTROLLER:&#x2F;&#x2F;和PLAINTEXT:&#x2F;&#x2F;，建议配置为PLAINTEXT:&#x2F;&#x2F;:9092,CONTROLLER:&#x2F;&#x2F;:9093</li>
+</ul>
+<p>在开发环境或者小规模集群，可以全部使用混合节点，如果是生产环境就建议设定好每个节点的类型了！并且通常需要先启动Controller节点再启动Broker节点。</p>
+<blockquote>
+<p>事实上，我们发现Kafka的KRaft配置目录config&#x2F;kraft下有三个配置文件，其中server.properties是混合节点的配置模板，而broker.properties和controller.properties分别是Broker节点和Controller节点的配置模板，大家如果要设定节点类型，可以直接使用对应的配置文件，将对应配置文件需要修改的部分修改一下，然后将上述格式化数据目录命令和启动命令中的配置文件路径改变一下即可，这样可以省略我们设定process.roles和listeners或者控制器节点删除advertise.listeners配置的操作。</p>
+</blockquote>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token key attr-name">process.roles</span><span class="token punctuation">=</span><span class="token value attr-value">broker,controller</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h2 id="log-dirs"><a href="#log-dirs" class="headerlink" title="log.dirs"></a>log.dirs</h2><p>kafka 将存储数据的日志目录，在准备工作中创建好的目录。</p>
+<pre class="line-numbers language-properties" data-language="properties"><code class="language-properties"><span class="token key attr-name">log.dirs</span><span class="token punctuation">=</span><span class="token value attr-value">/xxiaohei/middleware/kafka_2.13-3.4.1/kafka_data_log</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h2 id="其他配置"><a href="#其他配置" class="headerlink" title="其他配置"></a>其他配置</h2><ul>
+<li>socket.send.buffer.bytes 每次发送的数据包的最大大小（单位：字节）</li>
+<li>socket.receive.buffer.bytes 每次接收的数据包的最大大小（单位：字节）</li>
+<li>socket.request.max.bytes 接收的最大请求大小（单位：字节）</li>
+<li>num.partitions 每个Topic的默认分区数</li>
+</ul>
+<p>上述无论是哪个模式的集群，都可以在配置文件中找到这些配置，如果找不到可手动加入。除了修改配置文件之外，我们还可以在启动Kafka的命令中指定配置和值，例如：</p>
+<h1 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h1><p><a target="_blank" rel="noopener" href="https://kafka.apache.org/quickstart">https://kafka.apache.org/quickstart</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/7243725952790020133#heading-6">https://juejin.cn/post/7243725952790020133#heading-6</a></p>
+
+        
+      </div>
+
+         
+    </div>
+    
+     
+  </div>
+  
+    
+<nav id="article-nav">
+  <a class="article-nav-btn left  disabled "
+     >
+    <i class="fa-solid fa-angle-left"></i>
+    <p class="title-text">
+        
+    </p>
+  </a>
+  <a class="article-nav-btn right "
+    
+      href="/articles/MySql/mysql%E5%88%86%E7%BB%84%E5%B0%86%E8%BF%9E%E7%BB%AD%E7%9A%84%E6%97%B6%E9%97%B4%E6%AE%B5%E5%90%88%E5%B9%B6%E6%88%90%E4%B8%80%E6%9D%A1%E6%95%B0%E6%8D%AE/"
+      title="mysql分组将连续的时间段合并成一条数据"
+     >
+
+    <p class="title-text">
+      
+        mysql分组将连续的时间段合并成一条数据
+        
+    </p>
+    <i class="fa-solid fa-angle-right"></i>
+  </a>
+</nav>
+
+
+  
+</article>
+
+
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <div id="comment-card" class="comment-card">
+    <div class="main-title-bar">
+      <div class="main-title-dot"></div>
+      <div class="main-title">留言 </div>
+    </div>
+    <div id="vcomments"></div>
+  </div>
+  <script>
+      new Valine({
+          el: '#vcomments',
+          appId: "aATTmxUhzg7OkRG9GnE06Ch1-gzGzoHsz",
+          appKey: "bWpGMa0b4Bog7V2uuvlAGp60"
+      })
+  </script>
+ 
+    </div>
+    <div id="footer-wrapper">
+      <footer id="footer">
+  
+  <div id="footer-info" class="inner">
+    
+    &copy; 2023 小小黑<br>
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & Theme <a target="_blank" rel="noopener" href="https://github.com/wulongtao/hexo-theme-xplus">xplus</a>
+  </div>
+</footer>
+
+    </div>
+    <div class="back-to-top-wrapper">
+    <button id="back-to-top-btn" class="back-to-top-btn" onclick="topFunction()">
+        <span class="material-symbols-rounded">keyboard_arrow_up</span>
+    </button>
+</div>
+
+<script>
+    function topFunction() {
+        window.scroll({ top: 0, behavior: 'smooth' });
+    }
+    let btn = document.getElementById('back-to-top-btn');
+    function scrollFunction() {
+        if (document.body.scrollTop > 600 || document.documentElement.scrollTop > 600) {
+            btn.style.opacity = 1;
+        } else {
+            btn.style.opacity = 0;
+        }
+    }
+    window.onscroll = function() {
+        scrollFunction();
+    }
+</script>
+
+  </div>
+  <script src="/js/light-dark-switch.js"></script>
+</body>
+</html>

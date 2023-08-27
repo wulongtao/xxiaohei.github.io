@@ -289,6 +289,11 @@
                 <div class="category-count">3</div>
             </a>
         
+            <a class="category-link" href="/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/">
+                中间件
+                <div class="category-count">1</div>
+            </a>
+        
             <a class="category-link" href="/categories/%E5%B0%8F%E7%9F%A5%E8%AF%86/">
                 小知识
                 <div class="category-count">3</div>
@@ -308,7 +313,7 @@
   <div class="widget-wrap">
     <div class="widget">
       <h3 class="widget-title">标签</h3>
-      <ul class="widget-tag-list" itemprop="keywords"><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/MySql/" rel="tag">MySql</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Nacos/" rel="tag">Nacos</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/SpringCloud/" rel="tag">SpringCloud</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
+      <ul class="widget-tag-list" itemprop="keywords"><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/MySql/" rel="tag">MySql</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Nacos/" rel="tag">Nacos</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/Spring/" rel="tag">Spring</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/SpringCloud/" rel="tag">SpringCloud</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" rel="tag">中间件</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7/" rel="tag">实用工具</a></li><li class="widget-tag-list-item"><a class="widget-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
     </div>
   </div>
 
@@ -322,7 +327,7 @@
       
         <a class="archive-link" href="/archives/2023/08 ">
           八月 2023 
-          <div class="archive-count">1 </div>
+          <div class="archive-count">2 </div>
         </a>
       
         <a class="archive-link" href="/archives/2023/07 ">
@@ -342,6 +347,10 @@
       <ul>
         
           <li>
+            <a href="/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">Kafka3.4.1集群环境搭建</a>
+          </li>
+        
+          <li>
             <a href="/articles/MySql/mysql%E5%88%86%E7%BB%84%E5%B0%86%E8%BF%9E%E7%BB%AD%E7%9A%84%E6%97%B6%E9%97%B4%E6%AE%B5%E5%90%88%E5%B9%B6%E6%88%90%E4%B8%80%E6%9D%A1%E6%95%B0%E6%8D%AE/">mysql分组将连续的时间段合并成一条数据</a>
           </li>
         
@@ -357,10 +366,6 @@
             <a href="/articles/SpringCloud/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%A1%88/">远程调用本地接口方案</a>
           </li>
         
-          <li>
-            <a href="/articles/SpringCloud/Nacos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B8%8E%E5%AE%9E%E6%88%98/">Nacos源码阅读与实战</a>
-          </li>
-        
       </ul>
     </div>
   </div>
@@ -371,6 +376,72 @@
     </div>
     <div id="content-body">
       
+   
+
+<article id="post-Kafka3-4-1集群环境搭建" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+   
+  <div class="article-inner">
+    <div class="article-main">
+      <header class="article-header">
+        
+<div class="main-title-bar">
+  <div class="main-title-dot"></div>
+  
+    
+      <h1 itemprop="name">
+        <a class="p-name article-title" href="/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">Kafka3.4.1集群环境搭建</a>
+      </h1>
+    
+  
+</div>
+
+        <div class='meta-info-bar'>
+          <div class="meta-info">
+  <time class="dt-published" datetime="2023-08-27T14:15:25.000Z" itemprop="datePublished">2023-08-27</time>
+</div>
+          <div class="need-seperator meta-info">
+            <div class="meta-cate-flex">
+  
+  <a class="meta-cate-link" href="/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/">中间件</a>
+   
+</div>
+  
+          </div>
+          <div class="wordcount need-seperator meta-info">
+            4.2k 词 
+          </div>
+        </div>
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" rel="tag">中间件</a></li></ul>
+
+      </header>
+      <div class="e-content article-entry" itemprop="articleBody">
+        
+          <p>KRaft模式是新版本Kafka中推出的集群模式，这种模式下就完全不需要Zookeeper了！
+        
+      </div>
+
+         
+    </div>
+    
+     
+    <a class="right-panel  with-pic  "
+       style="background-image: url(/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/cover.png)" 
+      href="/articles/%E4%B8%AD%E9%97%B4%E4%BB%B6/Kafka3-4-1%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" 
+    >
+       
+      <div class="overlay">
+        <i class="fa-solid fa-angle-right with-pic"></i>
+      </div>
+       
+    </a>
+     
+  </div>
+  
+</article>
+
+ 
+
    
 
 <article id="post-mysql分组将连续的时间段合并成一条数据" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
@@ -961,72 +1032,6 @@ delay方法就是用来代替sleep方法的，下面来讲解一下delay方法�
     <a class="right-panel  with-pic  "
        style="background-image: url(/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/cover.jpg)" 
       href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E8%BD%BB%E9%87%8F%E7%BA%A7%E8%99%9A%E6%8B%9F%E6%9C%BAMultipass/" 
-    >
-       
-      <div class="overlay">
-        <i class="fa-solid fa-angle-right with-pic"></i>
-      </div>
-       
-    </a>
-     
-  </div>
-  
-</article>
-
- 
-
-   
-
-<article id="post-雪花算法存在的问题和解决方案" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
-   
-  <div class="article-inner">
-    <div class="article-main">
-      <header class="article-header">
-        
-<div class="main-title-bar">
-  <div class="main-title-dot"></div>
-  
-    
-      <h1 itemprop="name">
-        <a class="p-name article-title" href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">雪花算法存在的问题和解决方案</a>
-      </h1>
-    
-  
-</div>
-
-        <div class='meta-info-bar'>
-          <div class="meta-info">
-  <time class="dt-published" datetime="2023-07-07T21:29:20.000Z" itemprop="datePublished">2023-07-07</time>
-</div>
-          <div class="need-seperator meta-info">
-            <div class="meta-cate-flex">
-  
-  <a class="meta-cate-link" href="/categories/%E5%B0%8F%E7%9F%A5%E8%AF%86/">小知识</a>
-   
-</div>
-  
-          </div>
-          <div class="wordcount need-seperator meta-info">
-            1.4k 词 
-          </div>
-        </div>
-        
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95/" rel="tag">雪花算法</a></li></ul>
-
-      </header>
-      <div class="e-content article-entry" itemprop="articleBody">
-        
-          <p>雪花算法是一个分布式ID算法，但是他本也存在着一些问题。</p>
-        
-      </div>
-
-         
-    </div>
-    
-     
-    <a class="right-panel  with-pic  "
-       style="background-image: url(/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/cover.png)" 
-      href="/articles/%E5%B0%8F%E7%9F%A5%E8%AF%86/%E9%9B%AA%E8%8A%B1%E7%AE%97%E6%B3%95%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" 
     >
        
       <div class="overlay">
